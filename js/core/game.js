@@ -63,6 +63,9 @@ const Game = {
         // Binolarni chizish
         BuildingRenderer.renderAll(this.ctx);
 
+        // Ghost bino (joylashtirish rejimida)
+        BuildMenu.renderGhost(this.ctx);
+
         // Minimap
         Minimap.render();
 

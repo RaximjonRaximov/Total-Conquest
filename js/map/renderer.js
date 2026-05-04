@@ -17,7 +17,7 @@ const MapRenderer = {
     },
 
     // Bitta tile chizish
-    drawTile(x, y, hover, placingOk) {
+    drawTile(x, y, hover) {
         const iso = Camera.toIso(x, y);
         const screen = Camera.worldToScreen(iso.x, iso.y);
         const px = screen.x;
@@ -74,7 +74,7 @@ const MapRenderer = {
         this.ctx.lineWidth = 0.5;
         this.ctx.stroke();
 
-        // Hover
+        // Hover (faqat joylashtirish rejimida emas)
         if (hover && !BuildMenu.placing) {
             this.ctx.beginPath();
             this.ctx.moveTo(px, py - hh);
@@ -88,21 +88,6 @@ const MapRenderer = {
             this.ctx.lineWidth = 1.5 * Camera.zoom;
             this.ctx.stroke();
         }
-
-        // Qurish rejimi — joylashtirish ko'rsatkichi
-        if (placingOk !== undefined) {
-            this.ctx.beginPath();
-            this.ctx.moveTo(px, py - hh);
-            this.ctx.lineTo(px + hw, py);
-            this.ctx.lineTo(px, py + hh);
-            this.ctx.lineTo(px - hw, py);
-            this.ctx.closePath();
-            this.ctx.fillStyle = placingOk ? 'rgba(76,175,80,0.35)' : 'rgba(244,67,54,0.35)';
-            this.ctx.fill();
-            this.ctx.strokeStyle = placingOk ? 'rgba(76,175,80,0.8)' : 'rgba(244,67,54,0.8)';
-            this.ctx.lineWidth = 2 * Camera.zoom;
-            this.ctx.stroke();
-        }
     },
 
     // Butun xaritani chizish
@@ -113,41 +98,10 @@ const MapRenderer = {
         const mx = Input.mouse.tileX;
         const my = Input.mouse.tileY;
 
-        // Tilelarni chizish
         for (let y = 0; y < Grid.SIZE; y++) {
             for (let x = 0; x < Grid.SIZE; x++) {
                 const isHover = (x === mx && y === my);
-
-                // Qurish rejimida joylashtirish ko'rsatkichi
-                if (BuildMenu.placing && isHover) {
-                    const bd = BUILDING_DATA[BuildMenu.placingType];
-                    const w = bd.size[0];
-                    const h = bd.size[1];
-                    // Placement area ichidagi tilelar
-                    if (x >= mx && x < mx + w && y >= my && y < my + h) {
-                        // skip — pastda chizamiz
-                    } else {
-                        this.drawTile(x, y, false);
-                    }
-                } else {
-                    this.drawTile(x, y, isHover);
-                }
-            }
-        }
-
-        // Qurish rejimida placement area
-        if (BuildMenu.placing && mx >= 0 && my >= 0) {
-            const bd = BUILDING_DATA[BuildMenu.placingType];
-            const w = bd.size[0];
-            const h = bd.size[1];
-            const canPlace = Grid.isFree(mx, my, w, h) &&
-                             mx + w <= Grid.SIZE && my + h <= Grid.SIZE;
-            for (let dy = 0; dy < h; dy++) {
-                for (let dx = 0; dx < w; dx++) {
-                    if (mx + dx < Grid.SIZE && my + dy < Grid.SIZE) {
-                        this.drawTile(mx + dx, my + dy, false, canPlace);
-                    }
-                }
+                this.drawTile(x, y, isHover);
             }
         }
     }

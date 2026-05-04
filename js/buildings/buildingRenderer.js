@@ -1,98 +1,178 @@
 // ============================================
 // BINO RENDERER - Binolarni Canvas'da chizish
+// Binolar katakchalarni TO'LIQ qoplaydi
 // ============================================
 
 const BuildingRenderer = {
+    // Rasmlar keshi
+    imageCache: {},
+
+    // Rasmni yuklash
+    loadImage(src) {
+        if (this.imageCache[src]) return this.imageCache[src];
+        const img = new Image();
+        img.src = src;
+        img.onload = () => { this.imageCache[src] = img; };
+        this.imageCache[src] = null; // yuklanmoqda
+        return null;
+    },
+
+    // Bino rasmini olish
+    getBuildingImage(type, level) {
+        const src = `assets/buildings/${type}_${level}.png`;
+        return this.loadImage(src);
+    },
+
     // Barcha binolarni chizish
     renderAll(ctx) {
-        // Izometrik tartibda chizish (orqadagilar birinchi)
         const sorted = Object.values(BuildingManager.buildings).sort((a, b) => {
             return (a.x + a.y) - (b.x + b.y);
         });
-
         for (const b of sorted) {
             this.drawBuilding(ctx, b);
         }
+    },
+
+    // Bino uchun izometrik diamond (tile footprint) hisoblash
+    getFootprint(bx, by, w, h) {
+        // 4 burchak: yuqori, o'ng, pastki, chap
+        const top = Camera.toIso(bx, by);
+        const right = Camera.toIso(bx + w, by);
+        const bottom = Camera.toIso(bx + w, by + h);
+        const left = Camera.toIso(bx, by + h);
+        return { top, right, bottom, left };
     },
 
     drawBuilding(ctx, b) {
         const bd = BUILDING_DATA[b.type];
         const w = bd.size[0];
         const h = bd.size[1];
-
-        // Bino markazini hisoblash
-        const centerX = b.x + w / 2;
-        const centerY = b.y + h / 2;
-        const iso = Camera.toIso(centerX, centerY);
-        const screen = Camera.worldToScreen(iso.x, iso.y);
-        const px = screen.x;
-        const py = screen.y;
-
+        const fp = this.getFootprint(b.x, b.y, w, h);
         const z = Camera.zoom;
-        const bw = w * Grid.TILE_W * z / 2;
-        const bh = h * Grid.TILE_H * z / 2;
 
-        // Ekrandan tashqarida bo'lsa — o'tkazish
-        if (px + bw < -50 || px - bw > MapRenderer.canvas.width + 50 ||
-            py + bh < -50 || py - bh > MapRenderer.canvas.height + 100) return;
+        // Ekran koordinatalari
+        const sTop = Camera.worldToScreen(fp.top.x, fp.top.y);
+        const sRight = Camera.worldToScreen(fp.right.x, fp.right.y);
+        const sBottom = Camera.worldToScreen(fp.bottom.x, fp.bottom.y);
+        const sLeft = Camera.worldToScreen(fp.left.x, fp.left.y);
 
-        // Qurilmoqda bo'lsa — shaffofroq
+        // Markaz
+        const cx = (sTop.x + sBottom.x) / 2;
+        const cy = (sTop.y + sBottom.y) / 2;
+
+        // Ekrandan tashqarida — o'tkazish
+        const margin = 100;
+        if (cx < -margin || cx > MapRenderer.canvas.width + margin ||
+            cy < -margin || cy > MapRenderer.canvas.height + margin) return;
+
         const alpha = b.building ? 0.6 : 1.0;
         ctx.globalAlpha = alpha;
 
-        // Bino shakli (izometrik kuboid)
-        const baseH = (12 + b.level * 4) * z;
-        const hw = bw * 0.8;
-        const hh = bh * 0.8;
+        // Bino balandligi (piksellarda)
+        const buildingH = (16 + b.level * 5) * z;
 
-        this._drawIsoBox(ctx, px, py, hw, hh, baseH, this._getColor(b.type, b.level));
+        // Rasmni tekshirish
+        const img = this.getBuildingImage(b.type, b.level);
 
-        // Emoji ikonka
+        if (img) {
+            // RASM BILAN CHIZISH
+            const imgW = (sRight.x - sLeft.x);
+            const imgH = imgW * (img.height / img.width);
+            ctx.drawImage(img, cx - imgW / 2, cy - imgH + (sBottom.y - cy), imgW, imgH);
+        } else {
+            // GEOMETRIK SHAKL BILAN CHIZISH (rasm yuklanmaguncha)
+            const colors = this._getColor(b.type, b.level);
+
+            // Yuqori yuz (bino tepasi) — tile shaplini to'liq qoplaydi
+            ctx.beginPath();
+            ctx.moveTo(sTop.x, sTop.y - buildingH);
+            ctx.lineTo(sRight.x, sRight.y - buildingH);
+            ctx.lineTo(sBottom.x, sBottom.y - buildingH);
+            ctx.lineTo(sLeft.x, sLeft.y - buildingH);
+            ctx.closePath();
+            ctx.fillStyle = colors.top;
+            ctx.fill();
+            ctx.strokeStyle = colors.outline;
+            ctx.lineWidth = 0.8;
+            ctx.stroke();
+
+            // Chap yon yuz
+            ctx.beginPath();
+            ctx.moveTo(sLeft.x, sLeft.y - buildingH);
+            ctx.lineTo(sBottom.x, sBottom.y - buildingH);
+            ctx.lineTo(sBottom.x, sBottom.y);
+            ctx.lineTo(sLeft.x, sLeft.y);
+            ctx.closePath();
+            ctx.fillStyle = colors.left;
+            ctx.fill();
+            ctx.strokeStyle = colors.outline;
+            ctx.stroke();
+
+            // O'ng yon yuz
+            ctx.beginPath();
+            ctx.moveTo(sRight.x, sRight.y - buildingH);
+            ctx.lineTo(sBottom.x, sBottom.y - buildingH);
+            ctx.lineTo(sBottom.x, sBottom.y);
+            ctx.lineTo(sRight.x, sRight.y);
+            ctx.closePath();
+            ctx.fillStyle = colors.right;
+            ctx.fill();
+            ctx.strokeStyle = colors.outline;
+            ctx.stroke();
+        }
+
+        // EMOJI IKONKA (rasm bo'lmasa)
+        if (!img) {
+            ctx.globalAlpha = 1.0;
+            const iconSize = Math.max(14, Math.min(32, 20 * z * Math.max(w, h) / 2));
+            ctx.font = `${iconSize}px sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(bd.icon, cx, cy - buildingH / 2);
+        }
+
         ctx.globalAlpha = 1.0;
-        const iconSize = Math.max(14, Math.min(28, 18 * z));
-        ctx.font = `${iconSize}px sans-serif`;
+
+        // LEVEL BADGE
+        const badgeX = sRight.x - 4 * z;
+        const badgeY = sRight.y - buildingH - 2 * z;
+        const badgeR = Math.max(6, 8 * z);
+        ctx.fillStyle = 'rgba(0,0,0,0.7)';
+        ctx.beginPath();
+        ctx.arc(badgeX, badgeY, badgeR, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#ffd700';
+        ctx.font = `bold ${Math.max(8, 10 * z)}px Inter, sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(bd.icon, px, py - baseH / 2 - 4 * z);
+        ctx.fillText(b.level, badgeX, badgeY);
 
-        // Level badge
-        if (b.level > 1 || !b.building) {
-            const badgeSize = 8 * z;
-            ctx.fillStyle = 'rgba(0,0,0,0.6)';
-            ctx.beginPath();
-            ctx.arc(px + hw * 0.7, py - 2 * z, badgeSize, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.fillStyle = '#ffd700';
-            ctx.font = `bold ${Math.max(7, 9 * z)}px Inter, sans-serif`;
-            ctx.fillText(b.level, px + hw * 0.7, py - 1.5 * z);
-        }
-
-        // Qurilish progress bar
+        // QURILISH PROGRESS BAR
         if (b.building && b.timerId) {
             const prog = timerManager.getProgress(b.timerId);
-            const barW = hw * 1.4;
+            const rem = timerManager.getRemaining(b.timerId);
+            const barW = (sRight.x - sLeft.x) * 0.7;
             const barH = 4 * z;
-            const barY = py + hh * 0.6;
+            const barX = cx - barW / 2;
+            const barY = sBottom.y + 4 * z;
 
-            ctx.fillStyle = 'rgba(0,0,0,0.5)';
-            ctx.fillRect(px - barW / 2, barY, barW, barH);
+            ctx.fillStyle = 'rgba(0,0,0,0.6)';
+            ctx.fillRect(barX, barY, barW, barH);
             ctx.fillStyle = '#ffd700';
-            ctx.fillRect(px - barW / 2, barY, barW * prog, barH);
+            ctx.fillRect(barX, barY, barW * prog, barH);
             ctx.strokeStyle = 'rgba(255,255,255,0.3)';
             ctx.lineWidth = 0.5;
-            ctx.strokeRect(px - barW / 2, barY, barW, barH);
+            ctx.strokeRect(barX, barY, barW, barH);
 
-            // Qolgan vaqt
-            const rem = timerManager.getRemaining(b.timerId);
             ctx.fillStyle = '#fff';
-            ctx.font = `${Math.max(7, 8 * z)}px Inter, sans-serif`;
-            ctx.fillText(Helpers.formatTime(rem), px, barY + barH + 8 * z);
+            ctx.font = `${Math.max(8, 9 * z)}px Inter, sans-serif`;
+            ctx.fillText(Helpers.formatTime(rem), cx, barY + barH + 8 * z);
         }
 
-        // Resurs yig'ish ko'rsatkichi
+        // RESURS YIG'ISH KO'RSATKICHI
         if (!b.building && b.storedResource >= 5) {
-            const coinY = py - baseH - 10 * z;
-            const pulse = 0.8 + Math.sin(Date.now() * 0.004) * 0.2;
+            const iconY = sTop.y - buildingH - 16 * z;
+            const pulse = 0.7 + Math.sin(Date.now() * 0.004) * 0.3;
             ctx.globalAlpha = pulse;
 
             let resIcon = '';
@@ -101,57 +181,127 @@ const BuildingRenderer = {
             else if (b.type === 'treeOfLife') resIcon = '🍏';
 
             if (resIcon) {
-                ctx.font = `${Math.max(12, 16 * z)}px sans-serif`;
-                ctx.fillText(resIcon, px, coinY);
-                ctx.font = `bold ${Math.max(8, 10 * z)}px Inter, sans-serif`;
+                const sz = Math.max(14, 18 * z);
+                ctx.font = `${sz}px sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.fillText(resIcon, cx, iconY);
+                ctx.font = `bold ${Math.max(9, 11 * z)}px Inter, sans-serif`;
                 ctx.fillStyle = '#fff';
-                ctx.fillText('+' + Math.floor(b.storedResource), px, coinY + 14 * z);
+                ctx.fillText('+' + Math.floor(b.storedResource), cx, iconY + 16 * z);
             }
             ctx.globalAlpha = 1.0;
         }
-
-        ctx.globalAlpha = 1.0;
     },
 
-    // Izometrik kuboid chizish
-    _drawIsoBox(ctx, px, py, hw, hh, height, colors) {
+    // Ghost bino chizish (joylashtirish rejimida)
+    drawGhost(ctx, type, gx, gy, canPlace) {
+        const bd = BUILDING_DATA[type];
+        const w = bd.size[0];
+        const h = bd.size[1];
+        const fp = this.getFootprint(gx, gy, w, h);
+        const z = Camera.zoom;
+
+        const sTop = Camera.worldToScreen(fp.top.x, fp.top.y);
+        const sRight = Camera.worldToScreen(fp.right.x, fp.right.y);
+        const sBottom = Camera.worldToScreen(fp.bottom.x, fp.bottom.y);
+        const sLeft = Camera.worldToScreen(fp.left.x, fp.left.y);
+        const cx = (sTop.x + sBottom.x) / 2;
+        const cy = (sTop.y + sBottom.y) / 2;
+
+        // Tag yuz — yashil yoki qizil
+        ctx.globalAlpha = 0.4;
+        ctx.beginPath();
+        ctx.moveTo(sTop.x, sTop.y);
+        ctx.lineTo(sRight.x, sRight.y);
+        ctx.lineTo(sBottom.x, sBottom.y);
+        ctx.lineTo(sLeft.x, sLeft.y);
+        ctx.closePath();
+        ctx.fillStyle = canPlace ? '#4caf50' : '#f44336';
+        ctx.fill();
+        ctx.strokeStyle = canPlace ? '#2e7d32' : '#c62828';
+        ctx.lineWidth = 2 * z;
+        ctx.stroke();
+
+        // Ghost bino shakli
+        const buildingH = 20 * z;
+        const colors = this._getColor(type, 1);
+        ctx.globalAlpha = 0.5;
+
         // Yuqori yuz
         ctx.beginPath();
-        ctx.moveTo(px, py - hh - height);
-        ctx.lineTo(px + hw, py - height);
-        ctx.lineTo(px, py + hh - height);
-        ctx.lineTo(px - hw, py - height);
+        ctx.moveTo(sTop.x, sTop.y - buildingH);
+        ctx.lineTo(sRight.x, sRight.y - buildingH);
+        ctx.lineTo(sBottom.x, sBottom.y - buildingH);
+        ctx.lineTo(sLeft.x, sLeft.y - buildingH);
         ctx.closePath();
         ctx.fillStyle = colors.top;
         ctx.fill();
-        ctx.strokeStyle = colors.outline;
-        ctx.lineWidth = 0.5;
-        ctx.stroke();
 
         // Chap yon
         ctx.beginPath();
-        ctx.moveTo(px - hw, py - height);
-        ctx.lineTo(px, py + hh - height);
-        ctx.lineTo(px, py + hh);
-        ctx.lineTo(px - hw, py);
+        ctx.moveTo(sLeft.x, sLeft.y - buildingH);
+        ctx.lineTo(sBottom.x, sBottom.y - buildingH);
+        ctx.lineTo(sBottom.x, sBottom.y);
+        ctx.lineTo(sLeft.x, sLeft.y);
         ctx.closePath();
         ctx.fillStyle = colors.left;
         ctx.fill();
-        ctx.stroke();
 
         // O'ng yon
         ctx.beginPath();
-        ctx.moveTo(px + hw, py - height);
-        ctx.lineTo(px, py + hh - height);
-        ctx.lineTo(px, py + hh);
-        ctx.lineTo(px + hw, py);
+        ctx.moveTo(sRight.x, sRight.y - buildingH);
+        ctx.lineTo(sBottom.x, sBottom.y - buildingH);
+        ctx.lineTo(sBottom.x, sBottom.y);
+        ctx.lineTo(sRight.x, sRight.y);
         ctx.closePath();
         ctx.fillStyle = colors.right;
         ctx.fill();
+
+        // Ikonka
+        ctx.globalAlpha = 0.7;
+        const iconSize = Math.max(16, 22 * z * Math.max(w, h) / 2);
+        ctx.font = `${iconSize}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(bd.icon, cx, cy - buildingH / 2);
+
+        ctx.globalAlpha = 1.0;
+
+        // ✅ va ❌ tugmalar
+        const btnY = sTop.y - buildingH - 30 * z;
+        const btnSize = Math.max(18, 24 * z);
+
+        // Tasdiqlash (yashil)
+        if (canPlace) {
+            ctx.fillStyle = 'rgba(46,125,50,0.9)';
+            ctx.beginPath();
+            ctx.arc(cx - 20 * z, btnY, btnSize / 2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+            ctx.font = `${btnSize * 0.6}px sans-serif`;
+            ctx.fillStyle = '#fff';
+            ctx.fillText('✓', cx - 20 * z, btnY + 1);
+        }
+
+        // Bekor qilish (qizil)
+        ctx.fillStyle = 'rgba(198,40,40,0.9)';
+        ctx.beginPath();
+        ctx.arc(cx + 20 * z, btnY, btnSize / 2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 1.5;
         ctx.stroke();
+        ctx.font = `${btnSize * 0.6}px sans-serif`;
+        ctx.fillStyle = '#fff';
+        ctx.fillText('✕', cx + 20 * z, btnY + 1);
+
+        // Tugma pozitsiyalarini saqlash (click uchun)
+        BuildMenu._confirmBtnPos = { x: cx - 20 * z, y: btnY, r: btnSize / 2 };
+        BuildMenu._cancelBtnPos = { x: cx + 20 * z, y: btnY, r: btnSize / 2 };
     },
 
-    // Bino turi bo'yicha rang
     _getColor(type, level) {
         const schemes = {
             cityHall:    { top: '#e8c840', left: '#c4a030', right: '#a08020', outline: '#806010' },

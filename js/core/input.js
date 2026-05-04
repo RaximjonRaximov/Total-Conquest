@@ -27,6 +27,11 @@ const Input = {
             this.mouse.tileX = g.x;
             this.mouse.tileY = g.y;
 
+            // Joylashtirish rejimida ghost pozitsiyani yangilash
+            if (BuildMenu.placing) {
+                BuildMenu.updateGhostPosition(g.x, g.y);
+            }
+
             if (this.drag.active) {
                 const dx = e.clientX - this.drag.sx;
                 const dy = e.clientY - this.drag.sy;
@@ -41,9 +46,8 @@ const Input = {
             this.drag.active = false;
             canvas.style.cursor = 'default';
 
-            // Agar drag bo'lmasa — click
             if (!wasDrag && e.target === canvas) {
-                this._handleClick(this.mouse.tileX, this.mouse.tileY);
+                this._handleClick(e.clientX, e.clientY);
             }
         });
 
@@ -80,6 +84,12 @@ const Input = {
                 if (Math.abs(dx) > 3 || Math.abs(dy) > 3) this.drag.moved = true;
                 Camera.x = this.drag.cx - dx / Camera.zoom;
                 Camera.y = this.drag.cy - dy / Camera.zoom;
+
+                // Ghost yangilash
+                if (BuildMenu.placing) {
+                    const g = Camera.toGrid(e.touches[0].clientX, e.touches[0].clientY);
+                    BuildMenu.updateGhostPosition(g.x, g.y);
+                }
             } else if (e.touches.length === 2) {
                 const dist = Math.hypot(
                     e.touches[0].clientX - e.touches[1].clientX,
@@ -93,25 +103,27 @@ const Input = {
         canvas.addEventListener('touchend', (e) => {
             if (!this.drag.moved && e.changedTouches.length === 1) {
                 const t = e.changedTouches[0];
-                const g = Camera.toGrid(t.clientX, t.clientY);
-                this._handleClick(g.x, g.y);
+                this._handleClick(t.clientX, t.clientY);
             }
             this.drag.active = false;
         });
     },
 
-    // Click hodisasi
-    _handleClick(tileX, tileY) {
-        if (tileX < 0 || tileX >= Grid.SIZE || tileY < 0 || tileY >= Grid.SIZE) return;
-
-        // Qurish rejimida bo'lsa
+    _handleClick(screenX, screenY) {
+        // Joylashtirish rejimida — ✅/❌ tugmalarni tekshirish
         if (BuildMenu.placing) {
-            BuildMenu.placeBuilding(tileX, tileY);
+            if (BuildMenu.handleClick(screenX, screenY)) return;
+            // Tugma bosilmadi — ghost pozitsiyani yangilash
+            const g = Camera.toGrid(screenX, screenY);
+            BuildMenu.updateGhostPosition(g.x, g.y);
             return;
         }
 
+        const g = Camera.toGrid(screenX, screenY);
+        if (g.x < 0 || g.x >= Grid.SIZE || g.y < 0 || g.y >= Grid.SIZE) return;
+
         // Binoni tanlash
-        const building = BuildingManager.getAt(tileX, tileY);
+        const building = BuildingManager.getAt(g.x, g.y);
         if (building) {
             InfoPanel.show(building);
         } else {

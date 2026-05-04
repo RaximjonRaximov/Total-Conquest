@@ -1,14 +1,23 @@
 // ============================================
 // QURISH MENYUSI (Build Menu)
+// Tanlash -> mapda ghost -> ✅/❌ -> joylashtirish
 // ============================================
 
 const BuildMenu = {
     visible: false,
     placing: false,
     placingType: null,
+    placingX: -1,
+    placingY: -1,
     activeTab: 'iqtisod',
+    _confirmBtnPos: null,
+    _cancelBtnPos: null,
 
     toggle() {
+        if (this.placing) {
+            this.cancelPlacing();
+            return;
+        }
         this.visible = !this.visible;
         const el = document.getElementById('build-menu');
         const overlay = document.getElementById('modal-overlay');
@@ -19,7 +28,6 @@ const BuildMenu = {
         } else {
             el.classList.remove('show');
             overlay.classList.remove('show');
-            this.cancelPlacing();
         }
     },
 
@@ -27,7 +35,6 @@ const BuildMenu = {
         this.visible = false;
         document.getElementById('build-menu').classList.remove('show');
         document.getElementById('modal-overlay').classList.remove('show');
-        this.cancelPlacing();
     },
 
     setTab(tab) {
@@ -40,7 +47,6 @@ const BuildMenu = {
         const tabsEl = document.getElementById('build-tabs');
         if (!container) return;
 
-        // Tablar
         tabsEl.innerHTML = '';
         for (const [key, name] of Object.entries(CATEGORY_NAMES)) {
             const btn = document.createElement('div');
@@ -50,7 +56,6 @@ const BuildMenu = {
             tabsEl.appendChild(btn);
         }
 
-        // Binolar
         container.innerHTML = '';
         for (const [type, bd] of Object.entries(BUILDING_DATA)) {
             if (bd.category !== this.activeTab) continue;
@@ -96,27 +101,87 @@ const BuildMenu = {
     startPlacing(type) {
         this.placing = true;
         this.placingType = type;
+        this.placingX = Math.floor(Grid.SIZE / 2);
+        this.placingY = Math.floor(Grid.SIZE / 2);
         this.hide();
     },
 
     cancelPlacing() {
         this.placing = false;
         this.placingType = null;
+        this.placingX = -1;
+        this.placingY = -1;
+        this._confirmBtnPos = null;
+        this._cancelBtnPos = null;
     },
 
-    placeBuilding(tileX, tileY) {
+    // Mouse harakatida ghost pozitsiyani yangilash
+    updateGhostPosition(tileX, tileY) {
+        if (!this.placing) return;
+        if (tileX >= 0 && tileX < Grid.SIZE && tileY >= 0 && tileY < Grid.SIZE) {
+            this.placingX = tileX;
+            this.placingY = tileY;
+        }
+    },
+
+    // ✅ tugma bosildi
+    confirmPlacement() {
         if (!this.placing || !this.placingType) return;
 
         const bd = BUILDING_DATA[this.placingType];
         const w = bd.size[0];
         const h = bd.size[1];
+        const x = this.placingX;
+        const y = this.placingY;
 
-        if (!Grid.isFree(tileX, tileY, w, h)) return;
-        if (tileX + w > Grid.SIZE || tileY + h > Grid.SIZE) return;
+        if (!Grid.isFree(x, y, w, h)) return;
+        if (x + w > Grid.SIZE || y + h > Grid.SIZE) return;
 
-        const result = BuildingManager.place(this.placingType, tileX, tileY);
+        const result = BuildingManager.place(this.placingType, x, y);
         if (result) {
             this.cancelPlacing();
         }
+    },
+
+    // Ekranda click — tugmalarni tekshirish
+    handleClick(screenX, screenY) {
+        if (!this.placing) return false;
+
+        // ✅ tugma
+        if (this._confirmBtnPos) {
+            const cp = this._confirmBtnPos;
+            const dist = Math.hypot(screenX - cp.x, screenY - cp.y);
+            if (dist <= cp.r + 4) {
+                this.confirmPlacement();
+                return true;
+            }
+        }
+
+        // ❌ tugma
+        if (this._cancelBtnPos) {
+            const xp = this._cancelBtnPos;
+            const dist = Math.hypot(screenX - xp.x, screenY - xp.y);
+            if (dist <= xp.r + 4) {
+                this.cancelPlacing();
+                return true;
+            }
+        }
+
+        return false;
+    },
+
+    // Ghost binoni chizish (game loop da chaqiriladi)
+    renderGhost(ctx) {
+        if (!this.placing || !this.placingType) return;
+        if (this.placingX < 0 || this.placingY < 0) return;
+
+        const bd = BUILDING_DATA[this.placingType];
+        const w = bd.size[0];
+        const h = bd.size[1];
+        const canPlace = Grid.isFree(this.placingX, this.placingY, w, h) &&
+                         this.placingX + w <= Grid.SIZE &&
+                         this.placingY + h <= Grid.SIZE;
+
+        BuildingRenderer.drawGhost(ctx, this.placingType, this.placingX, this.placingY, canPlace);
     }
 };
