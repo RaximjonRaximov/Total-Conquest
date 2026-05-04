@@ -12,6 +12,8 @@ const BUILDING_DATA = {
         size: [3, 3],
         maxCount: 1,
         minimapColor: '#ffd700',
+        imageScale: 1.0,
+        imageOffsetY: 0,
         levels: {
             1: { cost: {}, time: 0, hp: 500 },
             2: { cost: { gold: 1000 }, time: 300, hp: 800 },

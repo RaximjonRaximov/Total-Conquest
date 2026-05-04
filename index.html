@@ -12,6 +12,9 @@
     <link rel="stylesheet" href="css/panels.css">
 </head>
 <body>
+    <!-- Vaqtincha Restart Tugmasi -->
+    <button id="temp-reset-btn" style="position:fixed; top:10px; right:10px; z-index:9999; padding:8px 12px; background:#e53935; color:white; border:none; border-radius:4px; font-weight:bold; cursor:pointer; box-shadow:0 2px 5px rgba(0,0,0,0.5);">🔄 Restart</button>
+
     <!-- Loading Screen -->
     <div id="loading-screen">
         <div class="loading-title">TOTAL CONQUEST</div>
@@ -39,11 +42,11 @@
         </div>
         <div class="hud-logo">TOTAL CONQUEST</div>
         <div class="hud-resources">
-            <div class="resource-item" id="res-gold-box">
+            <div class="resource-item" id="res-gold-box" onclick="Resources.promptFill('gold')" style="cursor:pointer">
                 <span class="resource-icon">🪙</span>
                 <span id="res-gold">1000</span>
             </div>
-            <div class="resource-item" id="res-food-box">
+            <div class="resource-item" id="res-food-box" onclick="Resources.promptFill('food')" style="cursor:pointer">
                 <span class="resource-icon">🍎</span>
                 <span id="res-food">500</span>
             </div>
@@ -51,7 +54,7 @@
                 <span class="resource-icon">💎</span>
                 <span id="res-diamond">50</span>
             </div>
-            <div class="resource-item res-locked" id="res-golden-apple-box" title="Town Hall 7da ochiladi">
+            <div class="resource-item res-locked" id="res-golden-apple-box" onclick="Resources.promptFill('goldenApple')" style="cursor:pointer" title="Town Hall 7da ochiladi">
                 <span class="resource-icon">🍏</span>
                 <span id="res-golden-apple">0</span>
             </div>

@@ -37,8 +37,19 @@ const BuildingManager = {
         // Narxni tekshirish va to'lash
         const levelData = bd.levels[1];
         if (levelData.cost && Object.keys(levelData.cost).length > 0) {
-            if (!Resources.canAfford(levelData.cost)) return null;
-            Resources.spendMultiple(levelData.cost);
+            if (!Resources.canAfford(levelData.cost)) {
+                const missingDiamonds = Resources.getMissingCostInDiamonds(levelData.cost);
+                if (Resources.diamond >= missingDiamonds) {
+                    const ans = confirm(`Sizda yetarli resurs yo'q. Kamini ${missingDiamonds} olmos evaziga to'laysizmi?`);
+                    if (!ans) return null;
+                    Resources.spendMissingWithDiamonds(levelData.cost, missingDiamonds);
+                } else {
+                    Toast.show("Resurs va olmos yetarli emas!", "error");
+                    return null;
+                }
+            } else {
+                Resources.spendMultiple(levelData.cost);
+            }
         }
 
         const id = this.nextId++;
@@ -185,8 +196,19 @@ const BuildingManager = {
         const levelData = bd.levels[nextLevel];
         if (!levelData) return false;
 
-        if (!Resources.canAfford(levelData.cost)) return false;
-        Resources.spendMultiple(levelData.cost);
+        if (!Resources.canAfford(levelData.cost)) {
+            const missingDiamonds = Resources.getMissingCostInDiamonds(levelData.cost);
+            if (Resources.diamond >= missingDiamonds) {
+                const ans = confirm(`Sizda yetarli resurs yo'q. Kamini ${missingDiamonds} olmos evaziga to'laysizmi?`);
+                if (!ans) return false;
+                Resources.spendMissingWithDiamonds(levelData.cost, missingDiamonds);
+            } else {
+                Toast.show("Resurs va olmos yetarli emas!", "error");
+                return false;
+            }
+        } else {
+            Resources.spendMultiple(levelData.cost);
+        }
 
         b.building = true;
         b.timerId = timerManager.add(
@@ -210,6 +232,46 @@ const BuildingManager = {
         );
 
         return true;
+    },
+
+    // Vaqtsiz (tezkor) upgrade olmos evaziga
+    instantUpgrade(id) {
+        const b = this.buildings[id];
+        if (!b || b.building) return false;
+
+        const bd = BUILDING_DATA[b.type];
+        const nextLevel = b.level + 1;
+        const levelData = bd.levels[nextLevel];
+        if (!levelData) return false;
+
+        const missingDiamonds = Resources.getMissingCostInDiamonds(levelData.cost);
+        const timerDiamonds = Helpers.calcGemCost(levelData.time);
+        const totalDiamonds = missingDiamonds + timerDiamonds;
+
+        if (Resources.diamond >= totalDiamonds) {
+            const ans = confirm(`Tezkor upgrade uchun jami ${totalDiamonds} olmos kerak. Rozimisiz?`);
+            if (!ans) return false;
+            
+            Resources.spendMissingWithDiamonds(levelData.cost, missingDiamonds);
+            Resources.spend('diamond', timerDiamonds);
+            
+            // Vaqtsiz upgrade tugallash
+            b.level = nextLevel;
+            b.maxHp = levelData.hp;
+            b.hp = levelData.hp;
+            
+            if (b.type === 'cityHall') {
+                Game.townHallLevel = b.level;
+                Resources.updateDisplay();
+                const thEl = document.getElementById('th-display');
+                if (thEl) thEl.textContent = 'Town Hall: Lvl ' + b.level;
+            }
+            Toast.show(`${bd.icon} ${bd.name} yangilandi!`, 'success');
+            return true;
+        } else {
+            Toast.show("Olmos yetarli emas!", "error");
+            return false;
+        }
     },
 
     // Olmos bilan tezlashtirish

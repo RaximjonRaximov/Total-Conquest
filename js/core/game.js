@@ -132,6 +132,17 @@ const Game = {
     },
 
     _setupButtons() {
+        // Restart tugmasi
+        const resetBtn = document.getElementById('temp-reset-btn');
+        if (resetBtn) {
+            resetBtn.onclick = () => {
+                if (confirm("O'yin noldan boshlanadi. Ishonchingiz komilmi?")) {
+                    localStorage.removeItem('totalConquest_save');
+                    location.reload();
+                }
+            };
+        }
+
         // Qurish tugmasi
         document.getElementById('btn-build').onclick = () => {
             this._closeAllPanels();

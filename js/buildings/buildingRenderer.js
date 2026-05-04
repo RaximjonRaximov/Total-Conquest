@@ -67,9 +67,16 @@ const BuildingRenderer = {
         ctx.globalAlpha = b.building ? 0.55 : 1.0;
 
         if (img) {
-            const iw = fp.right.x - fp.left.x;
+            // Rasm ob'ektni to'liq qoplashi uchun masshtab va siljish
+            const scale = bd.imageScale || 1.4; // Default 1.4 marta kattalashtirish (transparent joylarni yopish uchun)
+            const offsetY = bd.imageOffsetY || 10; // Default pastga siljish
+            
+            const baseW = fp.right.x - fp.left.x;
+            const iw = baseW * scale;
             const ih = iw * (img.height / img.width);
-            ctx.drawImage(img, fp.cx - iw/2, fp.bottom.y - ih, iw, ih);
+            const oy = offsetY * z;
+
+            ctx.drawImage(img, fp.cx - iw/2, fp.bottom.y - ih + oy, iw, ih);
         } else {
             const c = this._getColor(b.type);
             // Yuqori yuz — tile shaplini aniq takrorlaydi
@@ -161,25 +168,36 @@ const BuildingRenderer = {
 
         // Bino ghost — locked bo'lsa aniqroq
         ctx.globalAlpha = locked ? 0.75 : 0.45;
-        ctx.beginPath();
-        ctx.moveTo(fp.top.x, fp.top.y - bH); ctx.lineTo(fp.right.x, fp.right.y - bH);
-        ctx.lineTo(fp.bottom.x, fp.bottom.y - bH); ctx.lineTo(fp.left.x, fp.left.y - bH);
-        ctx.closePath(); ctx.fillStyle = c.top; ctx.fill();
-        ctx.strokeStyle = c.outline; ctx.lineWidth = 0.8; ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(fp.left.x, fp.left.y - bH); ctx.lineTo(fp.bottom.x, fp.bottom.y - bH);
-        ctx.lineTo(fp.bottom.x, fp.bottom.y); ctx.lineTo(fp.left.x, fp.left.y);
-        ctx.closePath(); ctx.fillStyle = c.left; ctx.fill(); ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(fp.right.x, fp.right.y - bH); ctx.lineTo(fp.bottom.x, fp.bottom.y - bH);
-        ctx.lineTo(fp.bottom.x, fp.bottom.y); ctx.lineTo(fp.right.x, fp.right.y);
-        ctx.closePath(); ctx.fillStyle = c.right; ctx.fill(); ctx.stroke();
+        const img = this.getBuildingImage(type, 1);
+        if (img) {
+            const scale = bd.imageScale || 1.0;
+            const offsetY = bd.imageOffsetY || 0;
+            const baseW = fp.right.x - fp.left.x;
+            const iw = baseW * scale;
+            const ih = iw * (img.height / img.width);
+            const oy = offsetY * z;
+            ctx.drawImage(img, fp.cx - iw/2, fp.bottom.y - ih + oy, iw, ih);
+        } else {
+            ctx.beginPath();
+            ctx.moveTo(fp.top.x, fp.top.y - bH); ctx.lineTo(fp.right.x, fp.right.y - bH);
+            ctx.lineTo(fp.bottom.x, fp.bottom.y - bH); ctx.lineTo(fp.left.x, fp.left.y - bH);
+            ctx.closePath(); ctx.fillStyle = c.top; ctx.fill();
+            ctx.strokeStyle = c.outline; ctx.lineWidth = 0.8; ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(fp.left.x, fp.left.y - bH); ctx.lineTo(fp.bottom.x, fp.bottom.y - bH);
+            ctx.lineTo(fp.bottom.x, fp.bottom.y); ctx.lineTo(fp.left.x, fp.left.y);
+            ctx.closePath(); ctx.fillStyle = c.left; ctx.fill(); ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(fp.right.x, fp.right.y - bH); ctx.lineTo(fp.bottom.x, fp.bottom.y - bH);
+            ctx.lineTo(fp.bottom.x, fp.bottom.y); ctx.lineTo(fp.right.x, fp.right.y);
+            ctx.closePath(); ctx.fillStyle = c.right; ctx.fill(); ctx.stroke();
 
-        // Ikonka
-        ctx.globalAlpha = locked ? 0.9 : 0.6;
-        const isz = Math.max(16, 22*z*Math.max(bd.size[0],bd.size[1])/2);
-        ctx.font = `${isz}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.fillText(bd.icon, fp.cx, fp.cy - bH/2);
+            // Ikonka
+            ctx.globalAlpha = locked ? 0.9 : 0.6;
+            const isz = Math.max(16, 22*z*Math.max(bd.size[0],bd.size[1])/2);
+            ctx.font = `${isz}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText(bd.icon, fp.cx, fp.cy - bH/2);
+        }
         ctx.globalAlpha = 1;
 
         // ✅ ❌ tugmalar — faqat LOCKED bo'lganda ko'rinadi
@@ -255,29 +273,40 @@ const BuildingRenderer = {
 
         // Bino ghost
         ctx.globalAlpha = 0.65;
-        // Yuqori yuz
-        ctx.beginPath();
-        ctx.moveTo(fp.top.x, fp.top.y - bH); ctx.lineTo(fp.right.x, fp.right.y - bH);
-        ctx.lineTo(fp.bottom.x, fp.bottom.y - bH); ctx.lineTo(fp.left.x, fp.left.y - bH);
-        ctx.closePath(); ctx.fillStyle = c.top; ctx.fill();
-        ctx.strokeStyle = c.outline; ctx.lineWidth = 0.8; ctx.stroke();
-        // Chap yon
-        ctx.beginPath();
-        ctx.moveTo(fp.left.x, fp.left.y - bH); ctx.lineTo(fp.bottom.x, fp.bottom.y - bH);
-        ctx.lineTo(fp.bottom.x, fp.bottom.y); ctx.lineTo(fp.left.x, fp.left.y);
-        ctx.closePath(); ctx.fillStyle = c.left; ctx.fill(); ctx.stroke();
-        // O'ng yon
-        ctx.beginPath();
-        ctx.moveTo(fp.right.x, fp.right.y - bH); ctx.lineTo(fp.bottom.x, fp.bottom.y - bH);
-        ctx.lineTo(fp.bottom.x, fp.bottom.y); ctx.lineTo(fp.right.x, fp.right.y);
-        ctx.closePath(); ctx.fillStyle = c.right; ctx.fill(); ctx.stroke();
+        const img = this.getBuildingImage(b.type, b.level);
+        if (img) {
+            const scale = bd.imageScale || 1.0;
+            const offsetY = bd.imageOffsetY || 0;
+            const baseW = fp.right.x - fp.left.x;
+            const iw = baseW * scale;
+            const ih = iw * (img.height / img.width);
+            const oy = offsetY * z;
+            ctx.drawImage(img, fp.cx - iw/2, fp.bottom.y - ih + oy, iw, ih);
+        } else {
+            // Yuqori yuz
+            ctx.beginPath();
+            ctx.moveTo(fp.top.x, fp.top.y - bH); ctx.lineTo(fp.right.x, fp.right.y - bH);
+            ctx.lineTo(fp.bottom.x, fp.bottom.y - bH); ctx.lineTo(fp.left.x, fp.left.y - bH);
+            ctx.closePath(); ctx.fillStyle = c.top; ctx.fill();
+            ctx.strokeStyle = c.outline; ctx.lineWidth = 0.8; ctx.stroke();
+            // Chap yon
+            ctx.beginPath();
+            ctx.moveTo(fp.left.x, fp.left.y - bH); ctx.lineTo(fp.bottom.x, fp.bottom.y - bH);
+            ctx.lineTo(fp.bottom.x, fp.bottom.y); ctx.lineTo(fp.left.x, fp.left.y);
+            ctx.closePath(); ctx.fillStyle = c.left; ctx.fill(); ctx.stroke();
+            // O'ng yon
+            ctx.beginPath();
+            ctx.moveTo(fp.right.x, fp.right.y - bH); ctx.lineTo(fp.bottom.x, fp.bottom.y - bH);
+            ctx.lineTo(fp.bottom.x, fp.bottom.y); ctx.lineTo(fp.right.x, fp.right.y);
+            ctx.closePath(); ctx.fillStyle = c.right; ctx.fill(); ctx.stroke();
 
-        // Ikonka
-        ctx.globalAlpha = 0.8;
-        const isz = Math.max(16, 22 * z * Math.max(bd.size[0], bd.size[1]) / 2);
-        ctx.font = `${isz}px sans-serif`;
-        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.fillText(bd.icon, fp.cx, fp.cy - bH / 2);
+            // Ikonka
+            ctx.globalAlpha = 0.8;
+            const isz = Math.max(16, 22 * z * Math.max(bd.size[0], bd.size[1]) / 2);
+            ctx.font = `${isz}px sans-serif`;
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText(bd.icon, fp.cx, fp.cy - bH / 2);
+        }
         ctx.globalAlpha = 1;
 
         // Level badge

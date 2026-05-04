@@ -84,8 +84,14 @@ const InfoPanel = {
                     const icons = { gold: '🪙', food: '🍎', diamond: '💎', goldenApple: '🍏' };
                     upgradeCost += `${icons[res] || ''} ${Helpers.formatNumber(amt)} `;
                 }
-                const canAfford = Resources.canAfford(nextLv.cost);
-                html += `<div class="info-btn" onclick="InfoPanel.upgrade()" ${!canAfford ? 'style="opacity:0.4"' : ''}>⬆️ Upgrade (${upgradeCost})</div>`;
+                html += `<div class="info-btn" onclick="InfoPanel.upgrade()">⬆️ Upgrade (${upgradeCost})</div>`;
+                
+                // Vaqtsiz (Tezkor) Upgrade tugmasi
+                const missingDiamonds = Resources.getMissingCostInDiamonds(nextLv.cost);
+                const timerDiamonds = Helpers.calcGemCost(nextLv.time);
+                const totalDiamonds = missingDiamonds + timerDiamonds;
+                
+                html += `<div class="info-btn" onclick="InfoPanel.instantUpgrade()" style="margin-left: 5px;">💎 ${totalDiamonds} Tezkor Upgrade</div>`;
             }
 
             html += '</div>';
@@ -119,17 +125,21 @@ const InfoPanel = {
 
     upgrade() {
         if (!this.currentBuilding) return;
-        const bd = BUILDING_DATA[this.currentBuilding.type];
-        const nextLv = bd.levels[this.currentBuilding.level + 1];
-        if (nextLv && !Resources.canAfford(nextLv.cost)) {
-            Toast.show('Resurslar yetarli emas!', 'error');
-            return;
-        }
         const result = BuildingManager.upgrade(this.currentBuilding.id);
         if (result) {
+            const bd = BUILDING_DATA[this.currentBuilding.type];
             Toast.show(`${bd.icon} ${bd.name} yangilanmoqda...`, 'info');
         }
         this.render();
+    },
+
+    instantUpgrade() {
+        if (!this.currentBuilding) return;
+        const result = BuildingManager.instantUpgrade(this.currentBuilding.id);
+        if (result) {
+            // Toast building manager ichida ko'rsatiladi
+            this.render();
+        }
     },
 
     speedUp() {

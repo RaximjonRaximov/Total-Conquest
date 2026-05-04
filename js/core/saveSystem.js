@@ -46,7 +46,7 @@ const SaveSystem = {
             // Resurslar
             Resources.gold = data.resources.gold || 1000;
             Resources.food = data.resources.food || 500;
-            Resources.diamond = data.resources.diamond || 50;
+            Resources.diamond = 999999; // data.resources.diamond o'rniga hozircha har safar 999999 beramiz
             Resources.goldenApple = data.resources.goldenApple || 0;
 
             // Town Hall level

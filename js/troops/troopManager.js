@@ -71,8 +71,19 @@ const TroopManager = {
         if (this.getTotal() + this.getQueueTotal() >= this.maxTroops) return false;
 
         // Narx tekshirish
-        if (!Resources.canAfford(data.cost)) return false;
-        Resources.spendMultiple(data.cost);
+        if (!Resources.canAfford(data.cost)) {
+            const missingDiamonds = Resources.getMissingCostInDiamonds(data.cost);
+            if (Resources.diamond >= missingDiamonds) {
+                const ans = confirm(`Sizda yetarli resurs yo'q. Kamini ${missingDiamonds} olmos evaziga to'laysizmi?`);
+                if (!ans) return false;
+                Resources.spendMissingWithDiamonds(data.cost, missingDiamonds);
+            } else {
+                Toast.show("Resurs va olmos yetarli emas!", "error");
+                return false;
+            }
+        } else {
+            Resources.spendMultiple(data.cost);
+        }
 
         // Navbatga qo'shish
         if (!this.queues[barracksId]) this.queues[barracksId] = [];
