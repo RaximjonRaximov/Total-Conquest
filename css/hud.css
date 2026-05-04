@@ -1,0 +1,214 @@
+/* ===== HUD - Yuqori panel ===== */
+#hud-top {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 56px;
+    background: linear-gradient(180deg, var(--bg-dark) 0%, var(--bg-dark-t) 100%);
+    border-bottom: 1px solid var(--border-gold);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    z-index: 100;
+    backdrop-filter: blur(10px);
+}
+
+.hud-logo {
+    font-family: 'Cinzel', serif;
+    font-weight: 900;
+    font-size: 16px;
+    background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 50%, var(--gold) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: 2px;
+}
+
+.hud-resources {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.resource-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 20px;
+    padding: 4px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-light);
+    transition: all 0.3s ease;
+}
+
+.resource-item:hover {
+    background: rgba(255,255,255,0.12);
+}
+
+.resource-icon {
+    font-size: 14px;
+}
+
+.res-locked {
+    opacity: 0.3;
+    position: relative;
+}
+
+.res-locked::after {
+    content: '🔒';
+    font-size: 10px;
+    position: absolute;
+    top: -4px;
+    right: -4px;
+}
+
+/* ===== Level badge ===== */
+.level-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.level-shield {
+    width: 32px; height: 32px;
+    background: linear-gradient(145deg, var(--gold), var(--gold-dark));
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Cinzel', serif;
+    font-weight: 900;
+    font-size: 16px;
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.2);
+    box-shadow: 0 2px 8px rgba(212,175,55,0.3);
+}
+
+.level-info-text {
+    font-size: 11px;
+    color: var(--gold);
+    font-family: 'Cinzel', serif;
+    font-weight: 700;
+}
+
+.level-xp-bar {
+    width: 80px; height: 6px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.level-xp-fill {
+    height: 100%;
+    width: 35%;
+    background: linear-gradient(90deg, var(--gold), var(--gold-light));
+    border-radius: 3px;
+    transition: width 0.5s ease;
+}
+
+/* ===== HUD - Pastki panel ===== */
+#hud-bottom {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    height: 70px;
+    background: linear-gradient(0deg, var(--bg-dark) 0%, var(--bg-dark-t) 100%);
+    border-top: 1px solid var(--border-gold);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 0 16px;
+    z-index: 100;
+    backdrop-filter: blur(10px);
+}
+
+.hud-btn {
+    width: 50px; height: 50px;
+    border-radius: 12px;
+    border: 1px solid rgba(212,175,55,0.4);
+    background: linear-gradient(145deg, rgba(30,40,65,0.9), rgba(20,28,50,0.9));
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: #c0c0c0;
+    font-size: 10px;
+    font-weight: 600;
+    gap: 2px;
+}
+
+.hud-btn:hover {
+    border-color: var(--gold);
+    background: linear-gradient(145deg, rgba(50,60,90,0.9), rgba(30,40,65,0.9));
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(212,175,55,0.2);
+}
+
+.hud-btn:active {
+    transform: translateY(0);
+}
+
+.hud-btn .btn-icon {
+    font-size: 20px;
+}
+
+.hud-btn.active {
+    border-color: var(--gold);
+    background: linear-gradient(145deg, rgba(60,50,20,0.9), rgba(40,35,15,0.9));
+    box-shadow: 0 0 12px rgba(212,175,55,0.3);
+}
+
+/* ===== Minimap ===== */
+#minimap-container {
+    position: fixed;
+    bottom: 80px; right: 12px;
+    width: 130px; height: 130px;
+    border: 2px solid rgba(212,175,55,0.5);
+    border-radius: 8px;
+    background: rgba(10,14,23,0.85);
+    z-index: 100;
+    overflow: hidden;
+    backdrop-filter: blur(5px);
+}
+
+#minimap-canvas { width: 100%; height: 100%; }
+
+.minimap-label {
+    position: absolute;
+    top: 4px; left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Cinzel', serif;
+    font-size: 8px;
+    font-weight: 700;
+    color: rgba(212,175,55,0.7);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+/* ===== Info displays ===== */
+#coord-display {
+    position: fixed;
+    top: 64px; left: 12px;
+    font-size: 11px;
+    color: var(--text-dim);
+    z-index: 100;
+    background: rgba(10,14,23,0.7);
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+#th-display {
+    position: fixed;
+    top: 64px; right: 150px;
+    font-size: 11px;
+    color: rgba(212,175,55,0.7);
+    z-index: 100;
+    background: rgba(10,14,23,0.7);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-family: 'Cinzel', serif;
+}

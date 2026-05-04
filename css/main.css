@@ -1,0 +1,31 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Inter:wght@400;600;700&display=swap');
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+body {
+    background-color: #0a0e17;
+    overflow: hidden;
+    font-family: 'Inter', sans-serif;
+    cursor: default;
+}
+
+canvas {
+    display: block;
+}
+
+:root {
+    --gold: #d4af37;
+    --gold-light: #f4e18f;
+    --gold-dark: #8b6914;
+    --bg-dark: rgba(15, 20, 35, 0.95);
+    --bg-dark-t: rgba(15, 20, 35, 0.7);
+    --border-gold: rgba(212, 175, 55, 0.3);
+    --text-light: #e0e0e0;
+    --text-dim: rgba(200, 200, 200, 0.6);
+}
