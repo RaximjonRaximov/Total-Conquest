@@ -28,7 +28,8 @@ const InfoPanel = {
         let html = `<div class="info-title">${bd.icon} ${bd.name} (Lvl ${b.level})</div>`;
 
         // HP
-        html += `<div class="info-row"><span class="label">HP</span><span class="value">${b.hp}/${b.maxHp}</span></div>`;
+        const hpPercent = Math.round(b.hp / b.maxHp * 100);
+        html += `<div class="info-row"><span class="label">HP</span><span class="value">${b.hp}/${b.maxHp} (${hpPercent}%)</span></div>`;
 
         // Ishlab chiqarish
         if (lv.production) {
@@ -46,6 +47,9 @@ const InfoPanel = {
             html += `<div class="info-row"><span class="label">Zarar</span><span class="value">${lv.damage}</span></div>`;
             html += `<div class="info-row"><span class="label">Radius</span><span class="value">${lv.range} tile</span></div>`;
         }
+
+        // Pozitsiya
+        html += `<div class="info-row"><span class="label">Pozitsiya</span><span class="value">(${b.x}, ${b.y})</span></div>`;
 
         // Yig'ilmagan resurs
         if (b.storedResource >= 1) {
@@ -69,7 +73,7 @@ const InfoPanel = {
 
             // Yig'ish
             if (b.storedResource >= 1) {
-                html += `<div class="info-btn" onclick="InfoPanel.collect()">Yig'ish</div>`;
+                html += `<div class="info-btn" onclick="InfoPanel.collect()">📦 Yig'ish</div>`;
             }
 
             // Upgrade
@@ -84,7 +88,18 @@ const InfoPanel = {
                 html += `<div class="info-btn" onclick="InfoPanel.upgrade()" ${!canAfford ? 'style="opacity:0.4"' : ''}>⬆️ Upgrade (${upgradeCost})</div>`;
             }
 
+            html += '</div>';
 
+            // Qo'shimcha tugmalar (ikkinchi qator)
+            html += '<div class="info-buttons" style="margin-top:4px">';
+
+            // Ko'chirish
+            html += `<div class="info-btn" onclick="InfoPanel.moveBuilding()">🔄 Ko'chirish</div>`;
+
+            // Olib tashlash (cityHall bo'lmasa)
+            if (b.type !== 'cityHall') {
+                html += `<div class="info-btn danger" onclick="InfoPanel.removeBuilding()">🗑️ Buzish</div>`;
+            }
 
             html += '</div>';
         }
@@ -94,23 +109,71 @@ const InfoPanel = {
 
     collect() {
         if (!this.currentBuilding) return;
-        BuildingManager.collect(this.currentBuilding.id);
+        const amount = BuildingManager.collect(this.currentBuilding.id);
+        if (amount > 0) {
+            const resIcon = this.currentBuilding.type === 'villa' ? '🪙' : this.currentBuilding.type === 'farm' ? '🍎' : '🍏';
+            Toast.show(`${resIcon} +${amount} yig'ildi!`, 'success');
+        }
         this.render();
     },
 
     upgrade() {
         if (!this.currentBuilding) return;
-        BuildingManager.upgrade(this.currentBuilding.id);
+        const bd = BUILDING_DATA[this.currentBuilding.type];
+        const nextLv = bd.levels[this.currentBuilding.level + 1];
+        if (nextLv && !Resources.canAfford(nextLv.cost)) {
+            Toast.show('Resurslar yetarli emas!', 'error');
+            return;
+        }
+        const result = BuildingManager.upgrade(this.currentBuilding.id);
+        if (result) {
+            Toast.show(`${bd.icon} ${bd.name} yangilanmoqda...`, 'info');
+        }
         this.render();
     },
 
     speedUp() {
         if (!this.currentBuilding) return;
-        BuildingManager.speedUp(this.currentBuilding.id);
+        const result = BuildingManager.speedUp(this.currentBuilding.id);
+        if (result) {
+            Toast.show('💎 Qurilish tezlashtirildi!', 'success');
+        } else {
+            Toast.show('Olmos yetarli emas!', 'error');
+        }
         this.render();
     },
 
+    moveBuilding() {
+        if (!this.currentBuilding) return;
+        if (this.currentBuilding.building) {
+            Toast.show('Qurilayotgan binoni ko\'chirib bo\'lmaydi!', 'warning');
+            return;
+        }
+        BuildingManager.startDrag(this.currentBuilding.id);
+        this.hide();
+        Toast.show('🔄 Binoni yangi joyga surib qo\'ying', 'info');
+    },
 
+    removeBuilding() {
+        if (!this.currentBuilding) return;
+        if (this.currentBuilding.type === 'cityHall') return;
+
+        const bd = BUILDING_DATA[this.currentBuilding.type];
+
+        if (!confirm(`${bd.icon} ${bd.name} ni buzishni xohlaysizmi?\n\nNarxning 30% qaytariladi.`)) return;
+
+        // Narxning 30% qaytarish
+        const lv = bd.levels[this.currentBuilding.level];
+        if (lv.cost) {
+            for (const [res, amt] of Object.entries(lv.cost)) {
+                Resources.add(res, Math.floor(amt * 0.3));
+            }
+        }
+
+        BuildingManager.remove(this.currentBuilding.id);
+        Toast.show(`🗑️ ${bd.name} buzildi!`, 'warning');
+        this.hide();
+    },
 
     // Har frame yangilash (progress bar uchun)
     update() {

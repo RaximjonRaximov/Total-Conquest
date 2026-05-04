@@ -142,7 +142,8 @@ const BuildingRenderer = {
     },
 
     // Ghost bino (joylashtirish)
-    drawGhost(ctx, type, gx, gy, canPlace) {
+    // locked = true bo'lsa — bino qotib turibdi, ✅/❌ ko'rinadi
+    drawGhost(ctx, type, gx, gy, canPlace, locked) {
         const bd = BUILDING_DATA[type];
         const fp = this.getScreenFootprint(gx, gy, bd.size[0], bd.size[1]);
         const z = Camera.zoom;
@@ -150,7 +151,7 @@ const BuildingRenderer = {
         const c = this._getColor(type);
 
         // Tag highlight
-        ctx.globalAlpha = 0.4;
+        ctx.globalAlpha = locked ? 0.5 : 0.3;
         ctx.beginPath();
         ctx.moveTo(fp.top.x, fp.top.y); ctx.lineTo(fp.right.x, fp.right.y);
         ctx.lineTo(fp.bottom.x, fp.bottom.y); ctx.lineTo(fp.left.x, fp.left.y);
@@ -158,47 +159,69 @@ const BuildingRenderer = {
         ctx.fillStyle = canPlace ? '#4caf50' : '#f44336'; ctx.fill();
         ctx.strokeStyle = canPlace ? '#2e7d32' : '#c62828'; ctx.lineWidth = 2*z; ctx.stroke();
 
-        // Bino ghost
-        ctx.globalAlpha = 0.5;
+        // Bino ghost — locked bo'lsa aniqroq
+        ctx.globalAlpha = locked ? 0.75 : 0.45;
         ctx.beginPath();
         ctx.moveTo(fp.top.x, fp.top.y - bH); ctx.lineTo(fp.right.x, fp.right.y - bH);
         ctx.lineTo(fp.bottom.x, fp.bottom.y - bH); ctx.lineTo(fp.left.x, fp.left.y - bH);
         ctx.closePath(); ctx.fillStyle = c.top; ctx.fill();
+        ctx.strokeStyle = c.outline; ctx.lineWidth = 0.8; ctx.stroke();
         ctx.beginPath();
         ctx.moveTo(fp.left.x, fp.left.y - bH); ctx.lineTo(fp.bottom.x, fp.bottom.y - bH);
         ctx.lineTo(fp.bottom.x, fp.bottom.y); ctx.lineTo(fp.left.x, fp.left.y);
-        ctx.closePath(); ctx.fillStyle = c.left; ctx.fill();
+        ctx.closePath(); ctx.fillStyle = c.left; ctx.fill(); ctx.stroke();
         ctx.beginPath();
         ctx.moveTo(fp.right.x, fp.right.y - bH); ctx.lineTo(fp.bottom.x, fp.bottom.y - bH);
         ctx.lineTo(fp.bottom.x, fp.bottom.y); ctx.lineTo(fp.right.x, fp.right.y);
-        ctx.closePath(); ctx.fillStyle = c.right; ctx.fill();
+        ctx.closePath(); ctx.fillStyle = c.right; ctx.fill(); ctx.stroke();
 
         // Ikonka
-        ctx.globalAlpha = 0.7;
+        ctx.globalAlpha = locked ? 0.9 : 0.6;
         const isz = Math.max(16, 22*z*Math.max(bd.size[0],bd.size[1])/2);
         ctx.font = `${isz}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         ctx.fillText(bd.icon, fp.cx, fp.cy - bH/2);
         ctx.globalAlpha = 1;
 
-        // ✅ ❌ tugmalar
-        const btnY = fp.top.y - bH - 28*z;
-        const btnR = Math.max(12, 16*z);
+        // ✅ ❌ tugmalar — faqat LOCKED bo'lganda ko'rinadi
+        if (locked) {
+            const btnY = fp.top.y - bH - 32*z;
+            const btnR = Math.max(14, 18*z);
+            const btnGap = Math.max(26, 30*z);
 
-        if (canPlace) {
-            ctx.fillStyle = 'rgba(46,125,50,0.9)';
-            ctx.beginPath(); ctx.arc(fp.cx - 22*z, btnY, btnR, 0, Math.PI*2); ctx.fill();
-            ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
-            ctx.fillStyle = '#fff'; ctx.font = `bold ${btnR}px sans-serif`;
-            ctx.fillText('✓', fp.cx - 22*z, btnY + 1);
+            // ✅ — yashil doira (faqat qo'ysa bo'lganda)
+            if (canPlace) {
+                // Yashil fon
+                ctx.fillStyle = 'rgba(46,125,50,0.95)';
+                ctx.beginPath(); ctx.arc(fp.cx - btnGap, btnY, btnR, 0, Math.PI*2); ctx.fill();
+                ctx.strokeStyle = '#fff'; ctx.lineWidth = 2.5; ctx.stroke();
+                // Belgi
+                ctx.fillStyle = '#fff'; ctx.font = `bold ${Math.max(14, btnR)}px sans-serif`;
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillText('✓', fp.cx - btnGap, btnY + 1);
+            }
+
+            // ❌ — qizil doira (doimo ko'rinadi)
+            ctx.fillStyle = 'rgba(198,40,40,0.95)';
+            ctx.beginPath(); ctx.arc(fp.cx + btnGap, btnY, btnR, 0, Math.PI*2); ctx.fill();
+            ctx.strokeStyle = '#fff'; ctx.lineWidth = 2.5; ctx.stroke();
+            ctx.fillStyle = '#fff'; ctx.font = `bold ${Math.max(14, btnR)}px sans-serif`;
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText('✕', fp.cx + btnGap, btnY + 1);
+
+            // Tugma pozitsiyalarini saqlash
+            BuildMenu._confirmBtn = canPlace ? { x: fp.cx - btnGap, y: btnY, r: btnR } : null;
+            BuildMenu._cancelBtn = { x: fp.cx + btnGap, y: btnY, r: btnR };
+        } else {
+            // Locked emas — tugmalar yo'q
+            BuildMenu._confirmBtn = null;
+            BuildMenu._cancelBtn = null;
+
+            // "Click qiling" ko'rsatkichi
+            ctx.fillStyle = 'rgba(255,255,255,0.75)';
+            ctx.font = `bold ${Math.max(10, 11*z)}px Inter,sans-serif`;
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText('👆 Joyni tanlang', fp.cx, fp.top.y - bH - 18*z);
         }
-        ctx.fillStyle = 'rgba(198,40,40,0.9)';
-        ctx.beginPath(); ctx.arc(fp.cx + 22*z, btnY, btnR, 0, Math.PI*2); ctx.fill();
-        ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
-        ctx.fillStyle = '#fff'; ctx.font = `bold ${btnR}px sans-serif`;
-        ctx.fillText('✕', fp.cx + 22*z, btnY + 1);
-
-        BuildMenu._confirmBtn = canPlace ? { x: fp.cx - 22*z, y: btnY, r: btnR } : null;
-        BuildMenu._cancelBtn = { x: fp.cx + 22*z, y: btnY, r: btnR };
     },
 
     // Drag qilinayotgan binoni chizish

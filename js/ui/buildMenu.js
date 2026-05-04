@@ -1,11 +1,12 @@
 // ============================================
 // QURISH MENYUSI (Build Menu)
-// Tanlash -> mapda ghost -> ✅/❌ -> joylashtirish
+// Tanlash -> mapda ghost -> click -> qotish -> ✅/❌ -> joylashtirish
 // ============================================
 
 const BuildMenu = {
     visible: false,
     placing: false,
+    locked: false,       // true = bino mapda qotib turibdi, ✅/❌ ko'rinadi
     placingType: null,
     placingX: -1,
     placingY: -1,
@@ -100,14 +101,18 @@ const BuildMenu = {
 
     startPlacing(type) {
         this.placing = true;
+        this.locked = false;
         this.placingType = type;
         this.placingX = Math.floor(Grid.SIZE / 2);
         this.placingY = Math.floor(Grid.SIZE / 2);
+        this._confirmBtn = null;
+        this._cancelBtn = null;
         this.hide();
     },
 
     cancelPlacing() {
         this.placing = false;
+        this.locked = false;
         this.placingType = null;
         this.placingX = -1;
         this.placingY = -1;
@@ -115,16 +120,35 @@ const BuildMenu = {
         this._cancelBtn = null;
     },
 
-    // Mouse harakatida ghost pozitsiyani yangilash
+    // Ghost pozitsiyani yangilash — faqat locked bo'lmaganda
     updateGhostPosition(tileX, tileY) {
-        if (!this.placing) return;
+        if (!this.placing || this.locked) return;
         if (tileX >= 0 && tileX < Grid.SIZE && tileY >= 0 && tileY < Grid.SIZE) {
             this.placingX = tileX;
             this.placingY = tileY;
         }
     },
 
-    // ✅ tugma bosildi
+    // Mapda click — binoni qotirish (lock)
+    lockPosition(tileX, tileY) {
+        if (!this.placing) return;
+        if (tileX >= 0 && tileX < Grid.SIZE && tileY >= 0 && tileY < Grid.SIZE) {
+            this.placingX = tileX;
+            this.placingY = tileY;
+        }
+        this.locked = true;
+    },
+
+    // Qotgan binoni boshqa joyga ko'chirish (locked holda map click)
+    moveLockedPosition(tileX, tileY) {
+        if (!this.placing || !this.locked) return;
+        if (tileX >= 0 && tileX < Grid.SIZE && tileY >= 0 && tileY < Grid.SIZE) {
+            this.placingX = tileX;
+            this.placingY = tileY;
+        }
+    },
+
+    // ✅ tugma bosildi — joylashtirish
     confirmPlacement() {
         if (!this.placing || !this.placingType) return;
 
@@ -147,27 +171,42 @@ const BuildMenu = {
     handleClick(screenX, screenY) {
         if (!this.placing) return false;
 
-        // ✅ tugma
-        if (this._confirmBtn) {
-            const cp = this._confirmBtn;
-            const dist = Math.hypot(screenX - cp.x, screenY - cp.y);
-            if (dist <= cp.r + 4) {
-                this.confirmPlacement();
-                return true;
+        // Locked holda — avval ✅/❌ tugmalarni tekshir
+        if (this.locked) {
+            // ✅ tugma
+            if (this._confirmBtn) {
+                const cp = this._confirmBtn;
+                const dist = Math.hypot(screenX - cp.x, screenY - cp.y);
+                if (dist <= cp.r + 6) {
+                    this.confirmPlacement();
+                    return true;
+                }
             }
+
+            // ❌ tugma
+            if (this._cancelBtn) {
+                const xp = this._cancelBtn;
+                const dist = Math.hypot(screenX - xp.x, screenY - xp.y);
+                if (dist <= xp.r + 6) {
+                    this.cancelPlacing();
+                    return true;
+                }
+            }
+
+            // Tugma bosilmadi — binoni yangi joyga ko'chirish
+            const g = Camera.toGrid(screenX, screenY);
+            if (g.x >= 0 && g.x < Grid.SIZE && g.y >= 0 && g.y < Grid.SIZE) {
+                this.moveLockedPosition(g.x, g.y);
+            }
+            return true;
         }
 
-        // ❌ tugma
-        if (this._cancelBtn) {
-            const xp = this._cancelBtn;
-            const dist = Math.hypot(screenX - xp.x, screenY - xp.y);
-            if (dist <= xp.r + 4) {
-                this.cancelPlacing();
-                return true;
-            }
+        // Locked emas — mapda click = binoni qotirish
+        const g = Camera.toGrid(screenX, screenY);
+        if (g.x >= 0 && g.x < Grid.SIZE && g.y >= 0 && g.y < Grid.SIZE) {
+            this.lockPosition(g.x, g.y);
         }
-
-        return false;
+        return true;
     },
 
     // Ghost binoni chizish (game loop da chaqiriladi)
@@ -182,6 +221,6 @@ const BuildMenu = {
                          this.placingX + w <= Grid.SIZE &&
                          this.placingY + h <= Grid.SIZE;
 
-        BuildingRenderer.drawGhost(ctx, this.placingType, this.placingX, this.placingY, canPlace);
+        BuildingRenderer.drawGhost(ctx, this.placingType, this.placingX, this.placingY, canPlace, this.locked);
     }
 };

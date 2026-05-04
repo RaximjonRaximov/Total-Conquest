@@ -9,33 +9,44 @@ const Input = {
     lastTouchDist: 0,
 
     // Bino drag uchun
-    _buildingDragPending: false,   // mousedown bo'ldi, hali drag boshlanmadi
+    _buildingDragPending: false,
     _buildingDragStartX: 0,
     _buildingDragStartY: 0,
     _buildingDragTargetId: null,
-    _buildingDragThreshold: 6,     // piksel — shu qadarga sursa drag boshlanadi
+    _buildingDragThreshold: 6,
 
     setup(canvas) {
         // ========== MOUSE ==========
         canvas.addEventListener('mousedown', (e) => {
             if (e.target !== canvas) return;
 
-            // Joylashtirish rejimida map surilmaydi
-            if (BuildMenu.placing) return;
-
-            // Bino dragging rejimida map surilmaydi
+            // Bino dragging rejimida hech narsa
             if (BuildingManager.dragging) return;
 
-            // Bino ustiga bosilganmi tekshirish
+            // Joylashtirish rejimida:
+            // - locked bo'lmasa → map surilmaydi (ghost mishka bilan yuradi)
+            // - locked bo'lsa → map surilishi mumkin (bino qotib turibdi)
+            if (BuildMenu.placing && !BuildMenu.locked) return;
+
+            // Locked joylashtirish rejimida — map surish ruxsat, lekin click ham kerak
+            if (BuildMenu.placing && BuildMenu.locked) {
+                this.drag.active = true;
+                this.drag.moved = false;
+                this.drag.sx = e.clientX;
+                this.drag.sy = e.clientY;
+                this.drag.cx = Camera.x;
+                this.drag.cy = Camera.y;
+                return;
+            }
+
+            // Bino ustiga bosilganmi tekshirish (drag uchun)
             const g = Camera.toGrid(e.clientX, e.clientY);
             const building = BuildingManager.getAt(g.x, g.y);
             if (building && !building.building) {
-                // Potentsial drag — boshlash uchun kutamiz
                 this._buildingDragPending = true;
                 this._buildingDragStartX = e.clientX;
                 this._buildingDragStartY = e.clientY;
                 this._buildingDragTargetId = building.id;
-                // Map dragging ham tayyorlab qo'yamiz (agar drag bo'lmasa)
                 this.drag.active = false;
                 this.drag.moved = false;
                 this.drag.sx = e.clientX;
@@ -62,18 +73,17 @@ const Input = {
             this.mouse.tileX = g.x;
             this.mouse.tileY = g.y;
 
-            // Bino joylashtirish rejimi
-            if (BuildMenu.placing) {
+            // Joylashtirish rejimi — ghost mishka bilan yuradi (faqat locked emas bo'lsa)
+            if (BuildMenu.placing && !BuildMenu.locked) {
                 BuildMenu.updateGhostPosition(g.x, g.y);
                 return;
             }
 
-            // Bino drag pending — threshold ga yetdimi?
+            // Bino drag pending
             if (this._buildingDragPending) {
                 const dx = e.clientX - this._buildingDragStartX;
                 const dy = e.clientY - this._buildingDragStartY;
                 if (Math.abs(dx) > this._buildingDragThreshold || Math.abs(dy) > this._buildingDragThreshold) {
-                    // Drag boshlash!
                     const started = BuildingManager.startDrag(this._buildingDragTargetId);
                     this._buildingDragPending = false;
                     if (started) {
@@ -84,7 +94,7 @@ const Input = {
                 return;
             }
 
-            // Bino dragging — pozitsiyani yangilash
+            // Bino dragging
             if (BuildingManager.dragging) {
                 BuildingManager.updateDragPosition(g.x, g.y);
                 return;
@@ -101,7 +111,7 @@ const Input = {
         });
 
         window.addEventListener('mouseup', (e) => {
-            // Bino drag pending edi, lekin suralmadi — oddiy click
+            // Bino drag pending — suralmadi, oddiy click
             if (this._buildingDragPending) {
                 this._buildingDragPending = false;
                 if (e.target === canvas) {
@@ -117,9 +127,10 @@ const Input = {
                 return;
             }
 
-            // Oddiy map drag
+            // Oddiy map drag / click
             const wasDrag = this.drag.moved;
             this.drag.active = false;
+            this.drag.moved = false;
             canvas.style.cursor = 'default';
             if (!wasDrag && e.target === canvas) {
                 this._handleClick(e.clientX, e.clientY);
@@ -135,10 +146,24 @@ const Input = {
         canvas.addEventListener('touchstart', (e) => {
             e.preventDefault();
             if (e.touches.length === 1) {
-                if (BuildMenu.placing) return;
                 if (BuildingManager.dragging) return;
 
                 const t = e.touches[0];
+
+                // Placing + not locked = ghost follows touch, no drag
+                if (BuildMenu.placing && !BuildMenu.locked) return;
+
+                // Placing + locked = allow map drag
+                if (BuildMenu.placing && BuildMenu.locked) {
+                    this.drag.active = true;
+                    this.drag.moved = false;
+                    this.drag.sx = t.clientX;
+                    this.drag.sy = t.clientY;
+                    this.drag.cx = Camera.x;
+                    this.drag.cy = Camera.y;
+                    return;
+                }
+
                 const g = Camera.toGrid(t.clientX, t.clientY);
                 const building = BuildingManager.getAt(g.x, g.y);
 
@@ -178,7 +203,8 @@ const Input = {
                 const t = e.touches[0];
                 const g = Camera.toGrid(t.clientX, t.clientY);
 
-                if (BuildMenu.placing) {
+                // Ghost follows touch (not locked)
+                if (BuildMenu.placing && !BuildMenu.locked) {
                     BuildMenu.updateGhostPosition(g.x, g.y);
                     return;
                 }
@@ -232,20 +258,22 @@ const Input = {
                 return;
             }
 
-            // Bino dragging — joylashtirish
+            // Bino dragging
             if (BuildingManager.dragging) {
                 BuildingManager.confirmDrag();
                 return;
             }
 
-            if (!this.drag.moved && e.changedTouches.length === 1) {
+            const wasDrag = this.drag.moved;
+            this.drag.active = false;
+            this.drag.moved = false;
+            if (!wasDrag && e.changedTouches.length === 1) {
                 const t = e.changedTouches[0];
                 this._handleClick(t.clientX, t.clientY);
             }
-            this.drag.active = false;
         });
 
-        // ESC — drag bekor qilish
+        // ESC — bekor qilish
         window.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 if (BuildingManager.dragging) {
@@ -259,12 +287,10 @@ const Input = {
     },
 
     _handleClick(screenX, screenY) {
-        // Joylashtirish — tugmalarni tekshirish
+        // Joylashtirish rejimi
         if (BuildMenu.placing) {
-            if (BuildMenu.handleClick(screenX, screenY)) return;
-            // Tugma bosilmadi — pozitsiyani yangilash
-            const g = Camera.toGrid(screenX, screenY);
-            BuildMenu.updateGhostPosition(g.x, g.y);
+            // BuildMenu.handleClick ichida locked/unlocked logika bor
+            BuildMenu.handleClick(screenX, screenY);
             return;
         }
 

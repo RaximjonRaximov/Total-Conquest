@@ -8,10 +8,14 @@ const Game = {
     ctx: null,
     running: false,
     lastInfoUpdate: 0,
+    lastArmyUpdate: 0,
 
     init() {
         this.canvas = document.getElementById('gameCanvas');
         this.ctx = this.canvas.getContext('2d');
+
+        // Toast tizimini ishga tushirish
+        Toast.init();
 
         // Tizimlarni ishga tushirish
         Grid.init();
@@ -19,8 +23,14 @@ const Game = {
         MapRenderer.resize();
         Minimap.init();
 
-        // Boshlang'ich binolar
-        BuildingManager.placeStarterBuildings();
+        // Saqlangan o'yin bormi?
+        const loaded = SaveSystem.load();
+        if (loaded) {
+            Toast.show('O\'yin yuklandi! Xush kelibsiz!', 'info');
+        } else {
+            // Boshlang'ich binolar
+            BuildingManager.placeStarterBuildings();
+        }
 
         // Kamerani markazga
         Camera.centerOn(Grid.SIZE / 2, Grid.SIZE / 2);
@@ -39,7 +49,16 @@ const Game = {
 
         // Resurslarni ko'rsatish
         Resources.updateDisplay();
+        TroopManager.updateCapacity();
         document.getElementById('th-display').textContent = 'Town Hall: Lvl ' + this.townHallLevel;
+
+        // Auto-save boshlash
+        SaveSystem.startAutoSave();
+
+        // Sahifadan chiqishda saqlash
+        window.addEventListener('beforeunload', () => {
+            SaveSystem.save();
+        });
 
         this.running = true;
         this.gameLoop();
@@ -84,7 +103,11 @@ const Game = {
 
         // Qurish rejimi ko'rsatkichi
         if (BuildMenu.placing) {
-            coordEl.textContent += ' | 📍 Joylashtirish...';
+            if (BuildMenu.locked) {
+                coordEl.textContent += ' | ✅ Tasdiqlang yoki ❌ Bekor qiling';
+            } else {
+                coordEl.textContent += ' | 👆 Joyni tanlang...';
+            }
         }
 
         // Drag rejimi ko'rsatkichi
@@ -99,38 +122,64 @@ const Game = {
             InfoPanel.update();
         }
 
+        // Army panel yangilash (har 1s)
+        if (now - this.lastArmyUpdate > 1000) {
+            this.lastArmyUpdate = now;
+            ArmyPanel.update();
+        }
+
         requestAnimationFrame(() => this.gameLoop());
     },
 
     _setupButtons() {
         // Qurish tugmasi
-        document.getElementById('btn-build').onclick = () => BuildMenu.toggle();
+        document.getElementById('btn-build').onclick = () => {
+            this._closeAllPanels();
+            BuildMenu.toggle();
+        };
 
-        // Boshqa tugmalar (hozircha placeholder)
-        document.getElementById('btn-army').onclick = () => this._showMessage('Askarlar tizimi tez orada...');
+        // Askar tugmasi
+        document.getElementById('btn-army').onclick = () => {
+            this._closeAllPanels();
+            ArmyPanel.toggle();
+        };
+
+        // Ilm-fan (hozircha placeholder)
         document.getElementById('btn-research').onclick = () => this._showMessage('Ilm-fan tez orada...');
-        document.getElementById('btn-alliance').onclick = () => this._showMessage('Ittifoq tez orada...');
-        document.getElementById('btn-battle').onclick = () => this._showMessage('Jang tizimi tez orada...');
-        document.getElementById('btn-shop').onclick = () => this._showMessage('Do\'kon tez orada...');
-        document.getElementById('btn-settings').onclick = () => this._showMessage('Sozlamalar tez orada...');
 
-        // Overlay bosish — menyuni yopish
-        document.getElementById('modal-overlay').onclick = () => BuildMenu.hide();
+        // Ittifoq (hozircha placeholder)
+        document.getElementById('btn-alliance').onclick = () => this._showMessage('Ittifoq tez orada...');
+
+        // Jang (hozircha placeholder)
+        document.getElementById('btn-battle').onclick = () => this._showMessage('Jang tizimi tez orada...');
+
+        // Do'kon
+        document.getElementById('btn-shop').onclick = () => {
+            this._closeAllPanels();
+            ShopPanel.toggle();
+        };
+
+        // Sozlamalar
+        document.getElementById('btn-settings').onclick = () => {
+            this._closeAllPanels();
+            SettingsPanel.toggle();
+        };
+
+        // Overlay bosish — barcha menyularni yopish
+        document.getElementById('modal-overlay').onclick = () => {
+            this._closeAllPanels();
+        };
+    },
+
+    _closeAllPanels() {
+        BuildMenu.hide();
+        if (ArmyPanel.visible) ArmyPanel.hide();
+        if (ShopPanel.visible) ShopPanel.hide();
+        if (SettingsPanel.visible) SettingsPanel.hide();
     },
 
     _showMessage(text) {
-        const msg = document.createElement('div');
-        msg.style.cssText = `
-            position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
-            background:rgba(20,28,50,0.95); border:1px solid rgba(212,175,55,0.5);
-            border-radius:12px; padding:20px 30px; z-index:300;
-            font-family:'Cinzel',serif; font-size:14px; color:#d4af37;
-            text-align:center; backdrop-filter:blur(10px);
-            box-shadow:0 8px 30px rgba(0,0,0,0.5);
-        `;
-        msg.textContent = text;
-        document.body.appendChild(msg);
-        setTimeout(() => msg.remove(), 2000);
+        Toast.show(text, 'info');
     }
 };
 
@@ -147,15 +196,16 @@ function startLoading() {
         'Xarita yuklanmoqda...',
         'Binolar tayyorlanmoqda...',
         'Rim legionlari yig\'ilmoqda...',
+        'Askarlar saflanmoqda...',
         'Imperiya qurilmoqda...'
     ];
 
     const iv = setInterval(() => {
-        progress += Math.random() * 20 + 8;
+        progress += Math.random() * 18 + 6;
         if (progress > 100) progress = 100;
 
         loadBar.style.width = progress + '%';
-        loadText.textContent = msgs[Math.min(Math.floor(progress / 28), msgs.length - 1)];
+        loadText.textContent = msgs[Math.min(Math.floor(progress / 22), msgs.length - 1)];
 
         if (progress >= 100) {
             clearInterval(iv);
