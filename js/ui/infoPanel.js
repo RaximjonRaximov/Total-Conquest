@@ -84,10 +84,7 @@ const InfoPanel = {
                 html += `<div class="info-btn" onclick="InfoPanel.upgrade()" ${!canAfford ? 'style="opacity:0.4"' : ''}>⬆️ Upgrade (${upgradeCost})</div>`;
             }
 
-            // O'chirish (cityHall ni o'chirish mumkin emas)
-            if (b.type !== 'cityHall') {
-                html += `<div class="info-btn danger" onclick="InfoPanel.demolish()">🗑️ Buzish</div>`;
-            }
+
 
             html += '</div>';
         }
@@ -113,11 +110,7 @@ const InfoPanel = {
         this.render();
     },
 
-    demolish() {
-        if (!this.currentBuilding) return;
-        BuildingManager.remove(this.currentBuilding.id);
-        this.hide();
-    },
+
 
     // Har frame yangilash (progress bar uchun)
     update() {

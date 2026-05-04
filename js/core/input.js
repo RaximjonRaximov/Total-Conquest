@@ -1,5 +1,6 @@
 // ============================================
 // INPUT TIZIMI - Mouse, Touch, Keyboard
+// Joylashtirish vaqtida map surilmaydi
 // ============================================
 
 const Input = {
@@ -8,9 +9,10 @@ const Input = {
     lastTouchDist: 0,
 
     setup(canvas) {
-        // --- MOUSE ---
         canvas.addEventListener('mousedown', (e) => {
             if (e.target !== canvas) return;
+            // Joylashtirish rejimida map surilmaydi
+            if (BuildMenu.placing) return;
             this.drag.active = true;
             this.drag.moved = false;
             this.drag.sx = e.clientX;
@@ -27,12 +29,9 @@ const Input = {
             this.mouse.tileX = g.x;
             this.mouse.tileY = g.y;
 
-            // Joylashtirish rejimida ghost pozitsiyani yangilash
             if (BuildMenu.placing) {
                 BuildMenu.updateGhostPosition(g.x, g.y);
-            }
-
-            if (this.drag.active) {
+            } else if (this.drag.active) {
                 const dx = e.clientX - this.drag.sx;
                 const dy = e.clientY - this.drag.sy;
                 if (Math.abs(dx) > 3 || Math.abs(dy) > 3) this.drag.moved = true;
@@ -45,22 +44,21 @@ const Input = {
             const wasDrag = this.drag.moved;
             this.drag.active = false;
             canvas.style.cursor = 'default';
-
             if (!wasDrag && e.target === canvas) {
                 this._handleClick(e.clientX, e.clientY);
             }
         });
 
-        // --- ZOOM ---
         canvas.addEventListener('wheel', (e) => {
             e.preventDefault();
             Camera.zoomBy(e.deltaY > 0 ? 0.9 : 1.1);
         }, { passive: false });
 
-        // --- TOUCH ---
+        // Touch
         canvas.addEventListener('touchstart', (e) => {
             e.preventDefault();
             if (e.touches.length === 1) {
+                if (BuildMenu.placing) return;
                 this.drag.active = true;
                 this.drag.moved = false;
                 this.drag.sx = e.touches[0].clientX;
@@ -78,17 +76,16 @@ const Input = {
 
         canvas.addEventListener('touchmove', (e) => {
             e.preventDefault();
-            if (e.touches.length === 1 && this.drag.active) {
-                const dx = e.touches[0].clientX - this.drag.sx;
-                const dy = e.touches[0].clientY - this.drag.sy;
-                if (Math.abs(dx) > 3 || Math.abs(dy) > 3) this.drag.moved = true;
-                Camera.x = this.drag.cx - dx / Camera.zoom;
-                Camera.y = this.drag.cy - dy / Camera.zoom;
-
-                // Ghost yangilash
+            if (e.touches.length === 1) {
                 if (BuildMenu.placing) {
                     const g = Camera.toGrid(e.touches[0].clientX, e.touches[0].clientY);
                     BuildMenu.updateGhostPosition(g.x, g.y);
+                } else if (this.drag.active) {
+                    const dx = e.touches[0].clientX - this.drag.sx;
+                    const dy = e.touches[0].clientY - this.drag.sy;
+                    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) this.drag.moved = true;
+                    Camera.x = this.drag.cx - dx / Camera.zoom;
+                    Camera.y = this.drag.cy - dy / Camera.zoom;
                 }
             } else if (e.touches.length === 2) {
                 const dist = Math.hypot(
@@ -110,10 +107,10 @@ const Input = {
     },
 
     _handleClick(screenX, screenY) {
-        // Joylashtirish rejimida — ✅/❌ tugmalarni tekshirish
+        // Joylashtirish — tugmalarni tekshirish
         if (BuildMenu.placing) {
             if (BuildMenu.handleClick(screenX, screenY)) return;
-            // Tugma bosilmadi — ghost pozitsiyani yangilash
+            // Tugma bosilmadi — pozitsiyani yangilash
             const g = Camera.toGrid(screenX, screenY);
             BuildMenu.updateGhostPosition(g.x, g.y);
             return;
@@ -122,7 +119,6 @@ const Input = {
         const g = Camera.toGrid(screenX, screenY);
         if (g.x < 0 || g.x >= Grid.SIZE || g.y < 0 || g.y >= Grid.SIZE) return;
 
-        // Binoni tanlash
         const building = BuildingManager.getAt(g.x, g.y);
         if (building) {
             InfoPanel.show(building);

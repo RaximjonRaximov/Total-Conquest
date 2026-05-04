@@ -10,8 +10,8 @@ const BuildMenu = {
     placingX: -1,
     placingY: -1,
     activeTab: 'iqtisod',
-    _confirmBtnPos: null,
-    _cancelBtnPos: null,
+    _confirmBtn: null,
+    _cancelBtn: null,
 
     toggle() {
         if (this.placing) {
@@ -111,8 +111,8 @@ const BuildMenu = {
         this.placingType = null;
         this.placingX = -1;
         this.placingY = -1;
-        this._confirmBtnPos = null;
-        this._cancelBtnPos = null;
+        this._confirmBtn = null;
+        this._cancelBtn = null;
     },
 
     // Mouse harakatida ghost pozitsiyani yangilash
@@ -148,8 +148,8 @@ const BuildMenu = {
         if (!this.placing) return false;
 
         // ✅ tugma
-        if (this._confirmBtnPos) {
-            const cp = this._confirmBtnPos;
+        if (this._confirmBtn) {
+            const cp = this._confirmBtn;
             const dist = Math.hypot(screenX - cp.x, screenY - cp.y);
             if (dist <= cp.r + 4) {
                 this.confirmPlacement();
@@ -158,8 +158,8 @@ const BuildMenu = {
         }
 
         // ❌ tugma
-        if (this._cancelBtnPos) {
-            const xp = this._cancelBtnPos;
+        if (this._cancelBtn) {
+            const xp = this._cancelBtn;
             const dist = Math.hypot(screenX - xp.x, screenY - xp.y);
             if (dist <= xp.r + 4) {
                 this.cancelPlacing();

@@ -1,329 +1,224 @@
 // ============================================
-// BINO RENDERER - Binolarni Canvas'da chizish
-// Binolar katakchalarni TO'LIQ qoplaydi
+// BINO RENDERER - Katakchalarni TO'LIQ qoplaydi
 // ============================================
 
 const BuildingRenderer = {
-    // Rasmlar keshi
     imageCache: {},
 
-    // Rasmni yuklash
     loadImage(src) {
-        if (this.imageCache[src]) return this.imageCache[src];
+        if (this.imageCache[src] !== undefined) return this.imageCache[src];
         const img = new Image();
         img.src = src;
+        this.imageCache[src] = null;
         img.onload = () => { this.imageCache[src] = img; };
-        this.imageCache[src] = null; // yuklanmoqda
         return null;
     },
 
-    // Bino rasmini olish
     getBuildingImage(type, level) {
-        const src = `assets/buildings/${type}_${level}.png`;
-        return this.loadImage(src);
+        return this.loadImage(`assets/buildings/${type}_${level}.png`);
     },
 
-    // Barcha binolarni chizish
+    // TO'G'RI footprint — tile chegaralarini aniq hisoblash
+    getScreenFootprint(bx, by, w, h) {
+        const z = Camera.zoom;
+        const hw = Grid.TILE_W * z / 2;
+        const hh = Grid.TILE_H * z / 2;
+
+        // Har bir burchak tile ning markazi
+        const iTop = Camera.toIso(bx, by);
+        const iRight = Camera.toIso(bx + w - 1, by);
+        const iBottom = Camera.toIso(bx + w - 1, by + h - 1);
+        const iLeft = Camera.toIso(bx, by + h - 1);
+        const tTop = Camera.worldToScreen(iTop.x, iTop.y);
+        const tRight = Camera.worldToScreen(iRight.x, iRight.y);
+        const tBottom = Camera.worldToScreen(iBottom.x, iBottom.y);
+        const tLeft = Camera.worldToScreen(iLeft.x, iLeft.y);
+
+        return {
+            top:    { x: tTop.x,         y: tTop.y - hh },
+            right:  { x: tRight.x + hw,  y: tRight.y },
+            bottom: { x: tBottom.x,      y: tBottom.y + hh },
+            left:   { x: tLeft.x - hw,   y: tLeft.y },
+            cx: (tTop.x + tBottom.x) / 2,
+            cy: (tTop.y - hh + tBottom.y + hh) / 2
+        };
+    },
+
     renderAll(ctx) {
-        const sorted = Object.values(BuildingManager.buildings).sort((a, b) => {
-            return (a.x + a.y) - (b.x + b.y);
-        });
-        for (const b of sorted) {
-            this.drawBuilding(ctx, b);
-        }
-    },
-
-    // Bino uchun izometrik diamond (tile footprint) hisoblash
-    getFootprint(bx, by, w, h) {
-        // 4 burchak: yuqori, o'ng, pastki, chap
-        const top = Camera.toIso(bx, by);
-        const right = Camera.toIso(bx + w, by);
-        const bottom = Camera.toIso(bx + w, by + h);
-        const left = Camera.toIso(bx, by + h);
-        return { top, right, bottom, left };
+        const sorted = Object.values(BuildingManager.buildings).sort((a, b) => (a.x + a.y) - (b.x + b.y));
+        for (const b of sorted) this.drawBuilding(ctx, b);
     },
 
     drawBuilding(ctx, b) {
         const bd = BUILDING_DATA[b.type];
-        const w = bd.size[0];
-        const h = bd.size[1];
-        const fp = this.getFootprint(b.x, b.y, w, h);
+        const fp = this.getScreenFootprint(b.x, b.y, bd.size[0], bd.size[1]);
         const z = Camera.zoom;
+        const bH = (14 + b.level * 4) * z;
 
-        // Ekran koordinatalari
-        const sTop = Camera.worldToScreen(fp.top.x, fp.top.y);
-        const sRight = Camera.worldToScreen(fp.right.x, fp.right.y);
-        const sBottom = Camera.worldToScreen(fp.bottom.x, fp.bottom.y);
-        const sLeft = Camera.worldToScreen(fp.left.x, fp.left.y);
+        // Ekrandan tashqarida
+        if (fp.cx < -120 || fp.cx > MapRenderer.canvas.width + 120 ||
+            fp.cy < -120 || fp.cy > MapRenderer.canvas.height + 120) return;
 
-        // Markaz
-        const cx = (sTop.x + sBottom.x) / 2;
-        const cy = (sTop.y + sBottom.y) / 2;
-
-        // Ekrandan tashqarida — o'tkazish
-        const margin = 100;
-        if (cx < -margin || cx > MapRenderer.canvas.width + margin ||
-            cy < -margin || cy > MapRenderer.canvas.height + margin) return;
-
-        const alpha = b.building ? 0.6 : 1.0;
-        ctx.globalAlpha = alpha;
-
-        // Bino balandligi (piksellarda)
-        const buildingH = (16 + b.level * 5) * z;
-
-        // Rasmni tekshirish
         const img = this.getBuildingImage(b.type, b.level);
+        ctx.globalAlpha = b.building ? 0.55 : 1.0;
 
         if (img) {
-            // RASM BILAN CHIZISH
-            const imgW = (sRight.x - sLeft.x);
-            const imgH = imgW * (img.height / img.width);
-            ctx.drawImage(img, cx - imgW / 2, cy - imgH + (sBottom.y - cy), imgW, imgH);
+            const iw = fp.right.x - fp.left.x;
+            const ih = iw * (img.height / img.width);
+            ctx.drawImage(img, fp.cx - iw/2, fp.bottom.y - ih, iw, ih);
         } else {
-            // GEOMETRIK SHAKL BILAN CHIZISH (rasm yuklanmaguncha)
-            const colors = this._getColor(b.type, b.level);
-
-            // Yuqori yuz (bino tepasi) — tile shaplini to'liq qoplaydi
+            const c = this._getColor(b.type);
+            // Yuqori yuz — tile shaplini aniq takrorlaydi
             ctx.beginPath();
-            ctx.moveTo(sTop.x, sTop.y - buildingH);
-            ctx.lineTo(sRight.x, sRight.y - buildingH);
-            ctx.lineTo(sBottom.x, sBottom.y - buildingH);
-            ctx.lineTo(sLeft.x, sLeft.y - buildingH);
+            ctx.moveTo(fp.top.x, fp.top.y - bH);
+            ctx.lineTo(fp.right.x, fp.right.y - bH);
+            ctx.lineTo(fp.bottom.x, fp.bottom.y - bH);
+            ctx.lineTo(fp.left.x, fp.left.y - bH);
             ctx.closePath();
-            ctx.fillStyle = colors.top;
-            ctx.fill();
-            ctx.strokeStyle = colors.outline;
-            ctx.lineWidth = 0.8;
-            ctx.stroke();
-
-            // Chap yon yuz
+            ctx.fillStyle = c.top; ctx.fill();
+            ctx.strokeStyle = c.outline; ctx.lineWidth = 0.8; ctx.stroke();
+            // Chap yon
             ctx.beginPath();
-            ctx.moveTo(sLeft.x, sLeft.y - buildingH);
-            ctx.lineTo(sBottom.x, sBottom.y - buildingH);
-            ctx.lineTo(sBottom.x, sBottom.y);
-            ctx.lineTo(sLeft.x, sLeft.y);
+            ctx.moveTo(fp.left.x, fp.left.y - bH);
+            ctx.lineTo(fp.bottom.x, fp.bottom.y - bH);
+            ctx.lineTo(fp.bottom.x, fp.bottom.y);
+            ctx.lineTo(fp.left.x, fp.left.y);
             ctx.closePath();
-            ctx.fillStyle = colors.left;
-            ctx.fill();
-            ctx.strokeStyle = colors.outline;
-            ctx.stroke();
-
-            // O'ng yon yuz
+            ctx.fillStyle = c.left; ctx.fill(); ctx.stroke();
+            // O'ng yon
             ctx.beginPath();
-            ctx.moveTo(sRight.x, sRight.y - buildingH);
-            ctx.lineTo(sBottom.x, sBottom.y - buildingH);
-            ctx.lineTo(sBottom.x, sBottom.y);
-            ctx.lineTo(sRight.x, sRight.y);
+            ctx.moveTo(fp.right.x, fp.right.y - bH);
+            ctx.lineTo(fp.bottom.x, fp.bottom.y - bH);
+            ctx.lineTo(fp.bottom.x, fp.bottom.y);
+            ctx.lineTo(fp.right.x, fp.right.y);
             ctx.closePath();
-            ctx.fillStyle = colors.right;
-            ctx.fill();
-            ctx.strokeStyle = colors.outline;
-            ctx.stroke();
+            ctx.fillStyle = c.right; ctx.fill(); ctx.stroke();
+            // Ikonka
+            ctx.globalAlpha = 1;
+            const isz = Math.max(16, 22 * z * Math.max(bd.size[0], bd.size[1]) / 2);
+            ctx.font = `${isz}px sans-serif`;
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText(bd.icon, fp.cx, fp.cy - bH / 2);
         }
+        ctx.globalAlpha = 1;
 
-        // EMOJI IKONKA (rasm bo'lmasa)
-        if (!img) {
-            ctx.globalAlpha = 1.0;
-            const iconSize = Math.max(14, Math.min(32, 20 * z * Math.max(w, h) / 2));
-            ctx.font = `${iconSize}px sans-serif`;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(bd.icon, cx, cy - buildingH / 2);
-        }
-
-        ctx.globalAlpha = 1.0;
-
-        // LEVEL BADGE
-        const badgeX = sRight.x - 4 * z;
-        const badgeY = sRight.y - buildingH - 2 * z;
-        const badgeR = Math.max(6, 8 * z);
+        // Level badge
+        const br = Math.max(6, 8 * z);
         ctx.fillStyle = 'rgba(0,0,0,0.7)';
-        ctx.beginPath();
-        ctx.arc(badgeX, badgeY, badgeR, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.beginPath(); ctx.arc(fp.right.x - 6*z, fp.right.y - bH, br, 0, Math.PI*2); ctx.fill();
         ctx.fillStyle = '#ffd700';
-        ctx.font = `bold ${Math.max(8, 10 * z)}px Inter, sans-serif`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(b.level, badgeX, badgeY);
+        ctx.font = `bold ${Math.max(8,10*z)}px Inter,sans-serif`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(b.level, fp.right.x - 6*z, fp.right.y - bH);
 
-        // QURILISH PROGRESS BAR
+        // Qurilish progress
         if (b.building && b.timerId) {
             const prog = timerManager.getProgress(b.timerId);
             const rem = timerManager.getRemaining(b.timerId);
-            const barW = (sRight.x - sLeft.x) * 0.7;
-            const barH = 4 * z;
-            const barX = cx - barW / 2;
-            const barY = sBottom.y + 4 * z;
-
-            ctx.fillStyle = 'rgba(0,0,0,0.6)';
-            ctx.fillRect(barX, barY, barW, barH);
-            ctx.fillStyle = '#ffd700';
-            ctx.fillRect(barX, barY, barW * prog, barH);
-            ctx.strokeStyle = 'rgba(255,255,255,0.3)';
-            ctx.lineWidth = 0.5;
-            ctx.strokeRect(barX, barY, barW, barH);
-
-            ctx.fillStyle = '#fff';
-            ctx.font = `${Math.max(8, 9 * z)}px Inter, sans-serif`;
-            ctx.fillText(Helpers.formatTime(rem), cx, barY + barH + 8 * z);
+            const bw = (fp.right.x - fp.left.x) * 0.6;
+            const by2 = fp.bottom.y + 4*z;
+            ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(fp.cx - bw/2, by2, bw, 4*z);
+            ctx.fillStyle = '#ffd700'; ctx.fillRect(fp.cx - bw/2, by2, bw*prog, 4*z);
+            ctx.fillStyle = '#fff'; ctx.font = `${Math.max(8,9*z)}px Inter,sans-serif`;
+            ctx.fillText(Helpers.formatTime(rem), fp.cx, by2 + 12*z);
         }
 
-        // RESURS YIG'ISH KO'RSATKICHI
+        // Resurs ko'rsatkichi
         if (!b.building && b.storedResource >= 5) {
-            const iconY = sTop.y - buildingH - 16 * z;
-            const pulse = 0.7 + Math.sin(Date.now() * 0.004) * 0.3;
-            ctx.globalAlpha = pulse;
-
-            let resIcon = '';
-            if (b.type === 'villa') resIcon = '🪙';
-            else if (b.type === 'farm') resIcon = '🍎';
-            else if (b.type === 'treeOfLife') resIcon = '🍏';
-
-            if (resIcon) {
-                const sz = Math.max(14, 18 * z);
-                ctx.font = `${sz}px sans-serif`;
-                ctx.textAlign = 'center';
-                ctx.fillText(resIcon, cx, iconY);
-                ctx.font = `bold ${Math.max(9, 11 * z)}px Inter, sans-serif`;
-                ctx.fillStyle = '#fff';
-                ctx.fillText('+' + Math.floor(b.storedResource), cx, iconY + 16 * z);
+            let ri = b.type === 'villa' ? '🪙' : b.type === 'farm' ? '🍎' : b.type === 'treeOfLife' ? '🍏' : '';
+            if (ri) {
+                const ry = fp.top.y - bH - 14*z;
+                ctx.globalAlpha = 0.7 + Math.sin(Date.now()*0.004)*0.3;
+                ctx.font = `${Math.max(14,18*z)}px sans-serif`; ctx.fillText(ri, fp.cx, ry);
+                ctx.fillStyle = '#fff'; ctx.font = `bold ${Math.max(9,11*z)}px Inter,sans-serif`;
+                ctx.fillText('+' + Math.floor(b.storedResource), fp.cx, ry + 16*z);
+                ctx.globalAlpha = 1;
             }
-            ctx.globalAlpha = 1.0;
         }
     },
 
-    // Ghost bino chizish (joylashtirish rejimida)
+    // Ghost bino (joylashtirish)
     drawGhost(ctx, type, gx, gy, canPlace) {
         const bd = BUILDING_DATA[type];
-        const w = bd.size[0];
-        const h = bd.size[1];
-        const fp = this.getFootprint(gx, gy, w, h);
+        const fp = this.getScreenFootprint(gx, gy, bd.size[0], bd.size[1]);
         const z = Camera.zoom;
+        const bH = 18 * z;
+        const c = this._getColor(type);
 
-        const sTop = Camera.worldToScreen(fp.top.x, fp.top.y);
-        const sRight = Camera.worldToScreen(fp.right.x, fp.right.y);
-        const sBottom = Camera.worldToScreen(fp.bottom.x, fp.bottom.y);
-        const sLeft = Camera.worldToScreen(fp.left.x, fp.left.y);
-        const cx = (sTop.x + sBottom.x) / 2;
-        const cy = (sTop.y + sBottom.y) / 2;
-
-        // Tag yuz — yashil yoki qizil
+        // Tag highlight
         ctx.globalAlpha = 0.4;
         ctx.beginPath();
-        ctx.moveTo(sTop.x, sTop.y);
-        ctx.lineTo(sRight.x, sRight.y);
-        ctx.lineTo(sBottom.x, sBottom.y);
-        ctx.lineTo(sLeft.x, sLeft.y);
+        ctx.moveTo(fp.top.x, fp.top.y); ctx.lineTo(fp.right.x, fp.right.y);
+        ctx.lineTo(fp.bottom.x, fp.bottom.y); ctx.lineTo(fp.left.x, fp.left.y);
         ctx.closePath();
-        ctx.fillStyle = canPlace ? '#4caf50' : '#f44336';
-        ctx.fill();
-        ctx.strokeStyle = canPlace ? '#2e7d32' : '#c62828';
-        ctx.lineWidth = 2 * z;
-        ctx.stroke();
+        ctx.fillStyle = canPlace ? '#4caf50' : '#f44336'; ctx.fill();
+        ctx.strokeStyle = canPlace ? '#2e7d32' : '#c62828'; ctx.lineWidth = 2*z; ctx.stroke();
 
-        // Ghost bino shakli
-        const buildingH = 20 * z;
-        const colors = this._getColor(type, 1);
+        // Bino ghost
         ctx.globalAlpha = 0.5;
-
-        // Yuqori yuz
         ctx.beginPath();
-        ctx.moveTo(sTop.x, sTop.y - buildingH);
-        ctx.lineTo(sRight.x, sRight.y - buildingH);
-        ctx.lineTo(sBottom.x, sBottom.y - buildingH);
-        ctx.lineTo(sLeft.x, sLeft.y - buildingH);
-        ctx.closePath();
-        ctx.fillStyle = colors.top;
-        ctx.fill();
-
-        // Chap yon
+        ctx.moveTo(fp.top.x, fp.top.y - bH); ctx.lineTo(fp.right.x, fp.right.y - bH);
+        ctx.lineTo(fp.bottom.x, fp.bottom.y - bH); ctx.lineTo(fp.left.x, fp.left.y - bH);
+        ctx.closePath(); ctx.fillStyle = c.top; ctx.fill();
         ctx.beginPath();
-        ctx.moveTo(sLeft.x, sLeft.y - buildingH);
-        ctx.lineTo(sBottom.x, sBottom.y - buildingH);
-        ctx.lineTo(sBottom.x, sBottom.y);
-        ctx.lineTo(sLeft.x, sLeft.y);
-        ctx.closePath();
-        ctx.fillStyle = colors.left;
-        ctx.fill();
-
-        // O'ng yon
+        ctx.moveTo(fp.left.x, fp.left.y - bH); ctx.lineTo(fp.bottom.x, fp.bottom.y - bH);
+        ctx.lineTo(fp.bottom.x, fp.bottom.y); ctx.lineTo(fp.left.x, fp.left.y);
+        ctx.closePath(); ctx.fillStyle = c.left; ctx.fill();
         ctx.beginPath();
-        ctx.moveTo(sRight.x, sRight.y - buildingH);
-        ctx.lineTo(sBottom.x, sBottom.y - buildingH);
-        ctx.lineTo(sBottom.x, sBottom.y);
-        ctx.lineTo(sRight.x, sRight.y);
-        ctx.closePath();
-        ctx.fillStyle = colors.right;
-        ctx.fill();
+        ctx.moveTo(fp.right.x, fp.right.y - bH); ctx.lineTo(fp.bottom.x, fp.bottom.y - bH);
+        ctx.lineTo(fp.bottom.x, fp.bottom.y); ctx.lineTo(fp.right.x, fp.right.y);
+        ctx.closePath(); ctx.fillStyle = c.right; ctx.fill();
 
         // Ikonka
         ctx.globalAlpha = 0.7;
-        const iconSize = Math.max(16, 22 * z * Math.max(w, h) / 2);
-        ctx.font = `${iconSize}px sans-serif`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(bd.icon, cx, cy - buildingH / 2);
+        const isz = Math.max(16, 22*z*Math.max(bd.size[0],bd.size[1])/2);
+        ctx.font = `${isz}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(bd.icon, fp.cx, fp.cy - bH/2);
+        ctx.globalAlpha = 1;
 
-        ctx.globalAlpha = 1.0;
+        // ✅ ❌ tugmalar
+        const btnY = fp.top.y - bH - 28*z;
+        const btnR = Math.max(12, 16*z);
 
-        // ✅ va ❌ tugmalar
-        const btnY = sTop.y - buildingH - 30 * z;
-        const btnSize = Math.max(18, 24 * z);
-
-        // Tasdiqlash (yashil)
         if (canPlace) {
             ctx.fillStyle = 'rgba(46,125,50,0.9)';
-            ctx.beginPath();
-            ctx.arc(cx - 20 * z, btnY, btnSize / 2, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.strokeStyle = '#fff';
-            ctx.lineWidth = 1.5;
-            ctx.stroke();
-            ctx.font = `${btnSize * 0.6}px sans-serif`;
-            ctx.fillStyle = '#fff';
-            ctx.fillText('✓', cx - 20 * z, btnY + 1);
+            ctx.beginPath(); ctx.arc(fp.cx - 22*z, btnY, btnR, 0, Math.PI*2); ctx.fill();
+            ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+            ctx.fillStyle = '#fff'; ctx.font = `bold ${btnR}px sans-serif`;
+            ctx.fillText('✓', fp.cx - 22*z, btnY + 1);
         }
-
-        // Bekor qilish (qizil)
         ctx.fillStyle = 'rgba(198,40,40,0.9)';
-        ctx.beginPath();
-        ctx.arc(cx + 20 * z, btnY, btnSize / 2, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
-        ctx.font = `${btnSize * 0.6}px sans-serif`;
-        ctx.fillStyle = '#fff';
-        ctx.fillText('✕', cx + 20 * z, btnY + 1);
+        ctx.beginPath(); ctx.arc(fp.cx + 22*z, btnY, btnR, 0, Math.PI*2); ctx.fill();
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+        ctx.fillStyle = '#fff'; ctx.font = `bold ${btnR}px sans-serif`;
+        ctx.fillText('✕', fp.cx + 22*z, btnY + 1);
 
-        // Tugma pozitsiyalarini saqlash (click uchun)
-        BuildMenu._confirmBtnPos = { x: cx - 20 * z, y: btnY, r: btnSize / 2 };
-        BuildMenu._cancelBtnPos = { x: cx + 20 * z, y: btnY, r: btnSize / 2 };
+        BuildMenu._confirmBtn = canPlace ? { x: fp.cx - 22*z, y: btnY, r: btnR } : null;
+        BuildMenu._cancelBtn = { x: fp.cx + 22*z, y: btnY, r: btnR };
     },
 
-    _getColor(type, level) {
-        const schemes = {
-            cityHall:    { top: '#e8c840', left: '#c4a030', right: '#a08020', outline: '#806010' },
-            villa:       { top: '#f0d080', left: '#d0b060', right: '#b09040', outline: '#907030' },
-            goldStorage: { top: '#e8b020', left: '#c89818', right: '#a87810', outline: '#886010' },
-            farm:        { top: '#90c850', left: '#70a838', right: '#508820', outline: '#406818' },
-            foodStorage: { top: '#e06040', left: '#c04830', right: '#a03020', outline: '#802018' },
-            treeOfLife:  { top: '#50b850', left: '#389838', right: '#207820', outline: '#186018' },
-            goldenAppleStorage: { top: '#c8d830', left: '#a8b820', right: '#889810', outline: '#687808' },
-            barracks:    { top: '#c05050', left: '#a03838', right: '#802828', outline: '#601818' },
-            musterGround:{ top: '#9060b0', left: '#704890', right: '#503070', outline: '#402060' },
-            blacksmith:  { top: '#8d6e63', left: '#6d4e43', right: '#4d3e33', outline: '#3d2e23' },
-            legionForum: { top: '#5060b0', left: '#384890', right: '#283070', outline: '#182060' },
-            wall:        { top: '#a0a0a0', left: '#808080', right: '#606060', outline: '#404040' },
-            gate:        { top: '#8090a0', left: '#607080', right: '#405060', outline: '#304050' },
-            archerTower: { top: '#c07040', left: '#a05828', right: '#804018', outline: '#603010' },
-            scorpio:     { top: '#d09030', left: '#b07020', right: '#905010', outline: '#704008' },
-            tormenta:    { top: '#4080c0', left: '#3060a0', right: '#204080', outline: '#183060' },
-            flamingCitadel:{top: '#e04020', left: '#c03010', right: '#a02008', outline: '#801008' },
-            spikeTrap:   { top: '#707070', left: '#505050', right: '#383838', outline: '#282828' },
-            militia:     { top: '#7050a0', left: '#503880', right: '#382860', outline: '#281850' }
+    _getColor(type) {
+        const s = {
+            cityHall:{top:'#e8c840',left:'#c4a030',right:'#a08020',outline:'#806010'},
+            villa:{top:'#f0d080',left:'#d0b060',right:'#b09040',outline:'#907030'},
+            goldStorage:{top:'#e8b020',left:'#c89818',right:'#a87810',outline:'#886010'},
+            farm:{top:'#90c850',left:'#70a838',right:'#508820',outline:'#406818'},
+            foodStorage:{top:'#e06040',left:'#c04830',right:'#a03020',outline:'#802018'},
+            treeOfLife:{top:'#50b850',left:'#389838',right:'#207820',outline:'#186018'},
+            goldenAppleStorage:{top:'#c8d830',left:'#a8b820',right:'#889810',outline:'#687808'},
+            barracks:{top:'#c05050',left:'#a03838',right:'#802828',outline:'#601818'},
+            musterGround:{top:'#9060b0',left:'#704890',right:'#503070',outline:'#402060'},
+            blacksmith:{top:'#8d6e63',left:'#6d4e43',right:'#4d3e33',outline:'#3d2e23'},
+            legionForum:{top:'#5060b0',left:'#384890',right:'#283070',outline:'#182060'},
+            wall:{top:'#a0a0a0',left:'#808080',right:'#606060',outline:'#404040'},
+            gate:{top:'#8090a0',left:'#607080',right:'#405060',outline:'#304050'},
+            archerTower:{top:'#c07040',left:'#a05828',right:'#804018',outline:'#603010'},
+            scorpio:{top:'#d09030',left:'#b07020',right:'#905010',outline:'#704008'},
+            tormenta:{top:'#4080c0',left:'#3060a0',right:'#204080',outline:'#183060'},
+            flamingCitadel:{top:'#e04020',left:'#c03010',right:'#a02008',outline:'#801008'},
+            spikeTrap:{top:'#707070',left:'#505050',right:'#383838',outline:'#282828'},
+            militia:{top:'#7050a0',left:'#503880',right:'#382860',outline:'#281850'}
         };
-        return schemes[type] || schemes.wall;
+        return s[type] || s.wall;
     }
 };
