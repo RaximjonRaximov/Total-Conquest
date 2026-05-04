@@ -66,6 +66,9 @@ const Game = {
         // Ghost bino (joylashtirish rejimida)
         BuildMenu.renderGhost(this.ctx);
 
+        // Drag qilinayotgan bino
+        BuildingRenderer.drawDragGhost(this.ctx);
+
         // Minimap
         Minimap.render();
 
@@ -82,6 +85,11 @@ const Game = {
         // Qurish rejimi ko'rsatkichi
         if (BuildMenu.placing) {
             coordEl.textContent += ' | 📍 Joylashtirish...';
+        }
+
+        // Drag rejimi ko'rsatkichi
+        if (BuildingManager.dragging) {
+            coordEl.textContent += ' | 🔄 Ko\'chirish...';
         }
 
         // Info panel yangilash (har 0.5s)

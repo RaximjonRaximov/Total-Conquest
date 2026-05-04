@@ -7,6 +7,14 @@ const BuildingManager = {
     buildings: {},  // id -> building object
     nextId: 1,
 
+    // Drag tizimi
+    dragging: false,
+    dragBuildingId: null,
+    dragOrigX: -1,
+    dragOrigY: -1,
+    dragCurrentX: -1,
+    dragCurrentY: -1,
+
     // Bino qo'yish
     place(type, gridX, gridY) {
         const bd = BUILDING_DATA[type];
@@ -82,6 +90,89 @@ const BuildingManager = {
 
         if (b.timerId) timerManager.cancel(b.timerId);
         delete this.buildings[id];
+    },
+
+    // Bino ko'chirish (drag & drop)
+    startDrag(id) {
+        const b = this.buildings[id];
+        if (!b) return false;
+        // Qurilayotgan binoni ko'chirib bo'lmaydi
+        if (b.building) return false;
+
+        const bd = BUILDING_DATA[b.type];
+        // Griddan bo'shatish (ko'chirish vaqtida)
+        Grid.free(b.x, b.y, bd.size[0], bd.size[1]);
+
+        this.dragging = true;
+        this.dragBuildingId = id;
+        this.dragOrigX = b.x;
+        this.dragOrigY = b.y;
+        this.dragCurrentX = b.x;
+        this.dragCurrentY = b.y;
+        return true;
+    },
+
+    updateDragPosition(tileX, tileY) {
+        if (!this.dragging) return;
+        if (tileX >= 0 && tileX < Grid.SIZE && tileY >= 0 && tileY < Grid.SIZE) {
+            this.dragCurrentX = tileX;
+            this.dragCurrentY = tileY;
+        }
+    },
+
+    confirmDrag() {
+        if (!this.dragging) return false;
+        const b = this.buildings[this.dragBuildingId];
+        if (!b) { this.cancelDrag(); return false; }
+
+        const bd = BUILDING_DATA[b.type];
+        const w = bd.size[0];
+        const h = bd.size[1];
+        const nx = this.dragCurrentX;
+        const ny = this.dragCurrentY;
+
+        // Yangi joyga sig'adimi tekshirish
+        if (nx + w > Grid.SIZE || ny + h > Grid.SIZE || !Grid.isFree(nx, ny, w, h)) {
+            // Sig'maydi — eski joyga qaytarish
+            this.cancelDrag();
+            return false;
+        }
+
+        // Yangi joyga qo'yish
+        b.x = nx;
+        b.y = ny;
+        Grid.occupy(nx, ny, w, h, b.id);
+
+        this.dragging = false;
+        this.dragBuildingId = null;
+        return true;
+    },
+
+    cancelDrag() {
+        if (!this.dragging) return;
+        const b = this.buildings[this.dragBuildingId];
+        if (b) {
+            const bd = BUILDING_DATA[b.type];
+            // Eski joyga qaytarish
+            b.x = this.dragOrigX;
+            b.y = this.dragOrigY;
+            Grid.occupy(this.dragOrigX, this.dragOrigY, bd.size[0], bd.size[1], b.id);
+        }
+        this.dragging = false;
+        this.dragBuildingId = null;
+    },
+
+    canPlaceDrag() {
+        if (!this.dragging) return false;
+        const b = this.buildings[this.dragBuildingId];
+        if (!b) return false;
+        const bd = BUILDING_DATA[b.type];
+        const w = bd.size[0];
+        const h = bd.size[1];
+        const nx = this.dragCurrentX;
+        const ny = this.dragCurrentY;
+        if (nx + w > Grid.SIZE || ny + h > Grid.SIZE) return false;
+        return Grid.isFree(nx, ny, w, h);
     },
 
     // Binoni upgrade qilish

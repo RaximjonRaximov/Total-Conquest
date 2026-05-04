@@ -46,7 +46,11 @@ const BuildingRenderer = {
 
     renderAll(ctx) {
         const sorted = Object.values(BuildingManager.buildings).sort((a, b) => (a.x + a.y) - (b.x + b.y));
-        for (const b of sorted) this.drawBuilding(ctx, b);
+        for (const b of sorted) {
+            // Drag qilinayotgan binoni asosiy joyda chizmaymiz
+            if (BuildingManager.dragging && b.id === BuildingManager.dragBuildingId) continue;
+            this.drawBuilding(ctx, b);
+        }
     },
 
     drawBuilding(ctx, b) {
@@ -195,6 +199,89 @@ const BuildingRenderer = {
 
         BuildMenu._confirmBtn = canPlace ? { x: fp.cx - 22*z, y: btnY, r: btnR } : null;
         BuildMenu._cancelBtn = { x: fp.cx + 22*z, y: btnY, r: btnR };
+    },
+
+    // Drag qilinayotgan binoni chizish
+    drawDragGhost(ctx) {
+        if (!BuildingManager.dragging) return;
+
+        const b = BuildingManager.buildings[BuildingManager.dragBuildingId];
+        if (!b) return;
+
+        const bd = BUILDING_DATA[b.type];
+        const gx = BuildingManager.dragCurrentX;
+        const gy = BuildingManager.dragCurrentY;
+        const w = bd.size[0];
+        const h = bd.size[1];
+        const canPlace = BuildingManager.canPlaceDrag();
+
+        const fp = this.getScreenFootprint(gx, gy, w, h);
+        const z = Camera.zoom;
+        const bH = (14 + b.level * 4) * z;
+        const c = this._getColor(b.type);
+
+        // Tag highlight (yashil/qizil)
+        ctx.globalAlpha = 0.35;
+        ctx.beginPath();
+        ctx.moveTo(fp.top.x, fp.top.y); ctx.lineTo(fp.right.x, fp.right.y);
+        ctx.lineTo(fp.bottom.x, fp.bottom.y); ctx.lineTo(fp.left.x, fp.left.y);
+        ctx.closePath();
+        ctx.fillStyle = canPlace ? '#4caf50' : '#f44336'; ctx.fill();
+        ctx.strokeStyle = canPlace ? '#2e7d32' : '#c62828'; ctx.lineWidth = 2.5 * z; ctx.stroke();
+        ctx.globalAlpha = 1;
+
+        // Bino ghost
+        ctx.globalAlpha = 0.65;
+        // Yuqori yuz
+        ctx.beginPath();
+        ctx.moveTo(fp.top.x, fp.top.y - bH); ctx.lineTo(fp.right.x, fp.right.y - bH);
+        ctx.lineTo(fp.bottom.x, fp.bottom.y - bH); ctx.lineTo(fp.left.x, fp.left.y - bH);
+        ctx.closePath(); ctx.fillStyle = c.top; ctx.fill();
+        ctx.strokeStyle = c.outline; ctx.lineWidth = 0.8; ctx.stroke();
+        // Chap yon
+        ctx.beginPath();
+        ctx.moveTo(fp.left.x, fp.left.y - bH); ctx.lineTo(fp.bottom.x, fp.bottom.y - bH);
+        ctx.lineTo(fp.bottom.x, fp.bottom.y); ctx.lineTo(fp.left.x, fp.left.y);
+        ctx.closePath(); ctx.fillStyle = c.left; ctx.fill(); ctx.stroke();
+        // O'ng yon
+        ctx.beginPath();
+        ctx.moveTo(fp.right.x, fp.right.y - bH); ctx.lineTo(fp.bottom.x, fp.bottom.y - bH);
+        ctx.lineTo(fp.bottom.x, fp.bottom.y); ctx.lineTo(fp.right.x, fp.right.y);
+        ctx.closePath(); ctx.fillStyle = c.right; ctx.fill(); ctx.stroke();
+
+        // Ikonka
+        ctx.globalAlpha = 0.8;
+        const isz = Math.max(16, 22 * z * Math.max(bd.size[0], bd.size[1]) / 2);
+        ctx.font = `${isz}px sans-serif`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(bd.icon, fp.cx, fp.cy - bH / 2);
+        ctx.globalAlpha = 1;
+
+        // Level badge
+        const br = Math.max(6, 8 * z);
+        ctx.fillStyle = 'rgba(0,0,0,0.7)';
+        ctx.beginPath(); ctx.arc(fp.right.x - 6*z, fp.right.y - bH, br, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#ffd700';
+        ctx.font = `bold ${Math.max(8,10*z)}px Inter,sans-serif`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(b.level, fp.right.x - 6*z, fp.right.y - bH);
+
+        // Ko'chirish ko'rsatkichi — "📍 Ko'chirish" tekst
+        ctx.fillStyle = canPlace ? 'rgba(46,125,50,0.85)' : 'rgba(198,40,40,0.85)';
+        const labelY = fp.top.y - bH - 20 * z;
+        ctx.font = `bold ${Math.max(10, 12*z)}px Inter,sans-serif`;
+        ctx.fillText(canPlace ? '📍 Qo\'yish' : '⛔ Joylash mumkin emas', fp.cx, labelY);
+
+        // Eski pozitsiya ko'rsatkichi (dim)
+        const origFp = this.getScreenFootprint(BuildingManager.dragOrigX, BuildingManager.dragOrigY, w, h);
+        ctx.globalAlpha = 0.15;
+        ctx.beginPath();
+        ctx.moveTo(origFp.top.x, origFp.top.y); ctx.lineTo(origFp.right.x, origFp.right.y);
+        ctx.lineTo(origFp.bottom.x, origFp.bottom.y); ctx.lineTo(origFp.left.x, origFp.left.y);
+        ctx.closePath();
+        ctx.fillStyle = '#888'; ctx.fill();
+        ctx.strokeStyle = '#555'; ctx.lineWidth = 1; ctx.stroke();
+        ctx.globalAlpha = 1;
     },
 
     _getColor(type) {
