@@ -39,11 +39,11 @@ const BUILDING_DATA = {
         minimapColor: '#ffc107',
         thRequired: 1,
         levels: {
-            1: { cost: { food: 100 }, time: 30, hp: 200, production: 5 },
-            2: { cost: { food: 300 }, time: 120, hp: 300, production: 10 },
-            3: { cost: { food: 800 }, time: 600, hp: 450, production: 18 },
-            4: { cost: { food: 2000 }, time: 1800, hp: 600, production: 30 },
-            5: { cost: { food: 5000 }, time: 3600, hp: 800, production: 50 }
+            1: { cost: { food: 100 }, time: 30, hp: 200, production: 5, capacity: 250 },
+            2: { cost: { food: 300 }, time: 120, hp: 300, production: 10, capacity: 600 },
+            3: { cost: { food: 800 }, time: 600, hp: 450, production: 18, capacity: 1500 },
+            4: { cost: { food: 2000 }, time: 1800, hp: 600, production: 30, capacity: 3000 },
+            5: { cost: { food: 5000 }, time: 3600, hp: 800, production: 50, capacity: 6000 }
         },
         description: 'Oltin ishlab chiqaradi.'
     },
@@ -75,11 +75,11 @@ const BUILDING_DATA = {
         minimapColor: '#8bc34a',
         thRequired: 1,
         levels: {
-            1: { cost: { gold: 100 }, time: 30, hp: 200, production: 5 },
-            2: { cost: { gold: 300 }, time: 120, hp: 300, production: 10 },
-            3: { cost: { gold: 800 }, time: 600, hp: 450, production: 18 },
-            4: { cost: { gold: 2000 }, time: 1800, hp: 600, production: 30 },
-            5: { cost: { gold: 5000 }, time: 3600, hp: 800, production: 50 }
+            1: { cost: { gold: 100 }, time: 30, hp: 200, production: 5, capacity: 250 },
+            2: { cost: { gold: 300 }, time: 120, hp: 300, production: 10, capacity: 600 },
+            3: { cost: { gold: 800 }, time: 600, hp: 450, production: 18, capacity: 1500 },
+            4: { cost: { gold: 2000 }, time: 1800, hp: 600, production: 30, capacity: 3000 },
+            5: { cost: { gold: 5000 }, time: 3600, hp: 800, production: 50, capacity: 6000 }
         },
         description: 'Olma (oziq-ovqat) ishlab chiqaradi.'
     },
@@ -111,9 +111,9 @@ const BUILDING_DATA = {
         minimapColor: '#4caf50',
         thRequired: 7,
         levels: {
-            1: { cost: { gold: 500000 }, time: 7200, hp: 400, production: 2 },
-            2: { cost: { gold: 1000000 }, time: 14400, hp: 600, production: 4 },
-            3: { cost: { gold: 2000000 }, time: 28800, hp: 800, production: 7 }
+            1: { cost: { gold: 500000 }, time: 7200, hp: 400, production: 2, capacity: 100 },
+            2: { cost: { gold: 1000000 }, time: 14400, hp: 600, production: 4, capacity: 300 },
+            3: { cost: { gold: 2000000 }, time: 28800, hp: 800, production: 7, capacity: 600 }
         },
         description: 'Olma Oltin ishlab chiqaradi. TH7 da ochiladi.'
     },

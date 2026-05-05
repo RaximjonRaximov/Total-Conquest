@@ -59,6 +59,22 @@ const BuildingRenderer = {
         const z = Camera.zoom;
         const bH = (14 + b.level * 4) * z;
 
+        // Radius ko'rsatish (Selected bo'lsa va mudofaa bo'lsa)
+        if (InfoPanel.currentBuilding && InfoPanel.currentBuilding.id === b.id) {
+            const lv = bd.levels[b.level];
+            if (lv.range) {
+                const rangePx = lv.range * Grid.TILE_W * z;
+                ctx.beginPath();
+                ctx.ellipse(fp.cx, fp.cy, rangePx, rangePx * (Grid.TILE_H / Grid.TILE_W), 0, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+                ctx.fill();
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+                ctx.setLineDash([5, 5]);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+        }
+
         // Ekrandan tashqarida
         if (fp.cx < -120 || fp.cx > MapRenderer.canvas.width + 120 ||
             fp.cy < -120 || fp.cy > MapRenderer.canvas.height + 120) return;
@@ -134,17 +150,70 @@ const BuildingRenderer = {
             ctx.fillText(Helpers.formatTime(rem), fp.cx, by2 + 12*z);
         }
 
-        // Resurs ko'rsatkichi
+        // Resurs ko'rsatkichi (Bubble style)
         if (!b.building && b.storedResource >= 5) {
             let ri = b.type === 'villa' ? '🪙' : b.type === 'farm' ? '🍎' : b.type === 'treeOfLife' ? '🍏' : '';
             if (ri) {
-                const ry = fp.top.y - bH - 14*z;
-                ctx.globalAlpha = 0.7 + Math.sin(Date.now()*0.004)*0.3;
-                ctx.font = `${Math.max(14,18*z)}px sans-serif`; ctx.fillText(ri, fp.cx, ry);
-                ctx.fillStyle = '#fff'; ctx.font = `bold ${Math.max(9,11*z)}px Inter,sans-serif`;
-                ctx.fillText('+' + Math.floor(b.storedResource), fp.cx, ry + 16*z);
-                ctx.globalAlpha = 1;
+                const ry = fp.top.y - bH - 22*z + Math.sin(Date.now()*0.005)*5*z; // Suzib turish effekti
+                
+                // Pufakcha (Bubble)
+                const bw = 30*z, bh = 30*z;
+                ctx.fillStyle = 'rgba(255,255,255,0.9)';
+                ctx.beginPath();
+                ctx.arc(fp.cx, ry, bw/2, 0, Math.PI*2);
+                ctx.fill();
+                ctx.strokeStyle = '#ffd700';
+                ctx.lineWidth = 2*z;
+                ctx.stroke();
+
+                // Ikonka
+                ctx.font = `${Math.max(16,20*z)}px sans-serif`;
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillText(ri, fp.cx, ry);
+                
+                // +Qiymat (faqat yaqinroq ko'rinishi uchun kichikroq)
+                ctx.fillStyle = '#000';
+                ctx.font = `bold ${Math.max(8,9*z)}px Inter,sans-serif`;
+                ctx.fillText('+', fp.cx + 8*z, ry - 8*z);
             }
+        }
+        // Askar ko'rsatkichi (Muster Ground)
+        if (b.type === 'musterGround' && !b.building) {
+            this._drawTroopsInCamp(ctx, b, fp);
+        }
+    },
+
+    // Yig'ilish maydonidagi askarlarni chizish
+    _drawTroopsInCamp(ctx, b, fp) {
+        const total = TroopManager.getTotal();
+        if (total === 0) return;
+
+        const z = Camera.zoom;
+        const bd = BUILDING_DATA[b.type];
+        
+        // Askarlar sonini chegaralash (grafika uchun)
+        const displayCount = Math.min(10, Math.ceil(total / 2));
+        
+        // Tasodifiy joylashuv (har bir bino uchun o'zgarmas urug' (seed) bilan)
+        const seed = b.id * 1000;
+        
+        for (let i = 0; i < displayCount; i++) {
+            // "Tasodifiy" lekin doimiy koordinatalar
+            const rx = ((Math.sin(seed + i * 543.21) + 1) / 2) * 0.6 + 0.2;
+            const ry = ((Math.cos(seed + i * 123.45) + 1) / 2) * 0.6 + 0.2;
+            
+            // Izometrik ekrandagi koordinata
+            const tx = b.x + rx * bd.size[0];
+            const ty = b.y + ry * bd.size[1];
+            const iso = Camera.toIso(tx, ty);
+            const screen = Camera.worldToScreen(iso.x, iso.y);
+            
+            // Askar belgisi
+            ctx.font = `${Math.max(10, 14 * z)}px sans-serif`;
+            ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+            
+            // Qaysi turdagi askarni chizish? (Army dan tasodifiy)
+            ctx.fillText('🏃', screen.x, screen.y);
         }
     },
 

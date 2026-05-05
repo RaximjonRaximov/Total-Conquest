@@ -150,5 +150,11 @@ const Resources = {
                 gaBox.title = 'Town Hall 7da ochiladi';
             }
         }
+
+        // Kubok
+        const trophyEl = document.getElementById('trophy-count');
+        if (trophyEl && typeof BattleSystem !== 'undefined') {
+            trophyEl.textContent = BattleSystem.trophies;
+        }
     }
 };

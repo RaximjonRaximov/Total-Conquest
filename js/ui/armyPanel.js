@@ -99,7 +99,17 @@ const ArmyPanel = {
                     <span class="army-queue-time">${Helpers.formatTime(remaining)}</span>` : ''}
                 </div>`;
             }
-            html += `<div class="army-queue-cancel" onclick="ArmyPanel.cancelTrain()">❌ Oxirgini bekor qilish</div>`;
+            html += `<div style="display:flex; gap:5px; margin-top:5px;">`;
+            // Tezlashtirish tugmasi (birinchi askar uchun)
+            if (queue[0] && queue[0].timerId) {
+                const rem = timerManager.getRemaining(queue[0].timerId);
+                const gemCost = Helpers.calcGemCost(rem);
+                if (gemCost > 0) {
+                    html += `<div class="army-queue-cancel" onclick="ArmyPanel.speedUpTrain()" style="background:rgba(0,188,212,0.3); border-color:#00bcd4;">💎 ${gemCost} Tezlashtirish</div>`;
+                }
+            }
+            html += `<div class="army-queue-cancel" onclick="ArmyPanel.cancelTrain()">❌ Bekor qilish</div>`;
+            html += `</div>`;
             html += '</div>';
         }
 
@@ -116,9 +126,10 @@ const ArmyPanel = {
             }
 
             const canAfford = Resources.canAfford(troop.cost);
-            const disabled = !canAfford || full;
+            const hasDiamonds = Resources.diamond >= Resources.getMissingCostInDiamonds(troop.cost);
+            const disabled = full || (!canAfford && !hasDiamonds);
 
-            html += `<div class="army-troop-item ${disabled ? 'disabled' : ''}" ${!disabled ? `onclick="ArmyPanel.trainTroop('${troop.type}')"` : ''}>
+            html += `<div class="army-troop-item ${disabled ? 'disabled' : ''} ${!canAfford && hasDiamonds ? 'diamond-buy' : ''}" ${!disabled ? `onclick="ArmyPanel.trainTroop('${troop.type}')"` : ''}>
                 <div class="army-troop-icon">${troop.icon}</div>
                 <div class="army-troop-name">${troop.name}</div>
                 <div class="army-troop-stats">
@@ -126,6 +137,7 @@ const ArmyPanel = {
                     <span>⚡${troop.stats.damage}</span>
                 </div>
                 <div class="army-troop-cost">${costText}</div>
+                ${!canAfford && hasDiamonds ? `<div class="army-troop-cost" style="color:#00bcd4;">💎 olmos bilan</div>` : ''}
                 <div class="army-troop-time">⏱️ ${Helpers.formatTime(troop.time)}</div>
             </div>`;
         }
@@ -196,6 +208,25 @@ const ArmyPanel = {
     cancelTrain() {
         if (!this.selectedBarracks) return;
         TroopManager.cancelLast(this.selectedBarracks.id);
+        this.render();
+    },
+
+    // Olmos bilan navbatni tezlashtirish
+    speedUpTrain() {
+        if (!this.selectedBarracks) return;
+        const queue = TroopManager.getQueue(this.selectedBarracks.id);
+        if (!queue || queue.length === 0 || !queue[0].timerId) return;
+
+        const rem = timerManager.getRemaining(queue[0].timerId);
+        const gemCost = Helpers.calcGemCost(rem);
+
+        if (!Resources.spend('diamond', gemCost)) {
+            Toast.show("Olmos yetarli emas!", "error");
+            return;
+        }
+        
+        timerManager.instant(queue[0].timerId);
+        Toast.show("💎 Askar darhol tayyor!", "success");
         this.render();
     },
 

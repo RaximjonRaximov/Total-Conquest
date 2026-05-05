@@ -4,16 +4,36 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Total Conquest - Rim Imperiyasi</title>
-    <meta name="description" content="Total Conquest - Rim imperiyasi strategiya o'yini">
+    <meta name="description" content="Total Conquest - Rim imperiyasi strategiya o'yini. Binolar quring, askar yarating, jang qiling!">
     <link rel="stylesheet" href="css/main.css">
     <link rel="stylesheet" href="css/hud.css">
     <link rel="stylesheet" href="css/loading.css">
     <link rel="stylesheet" href="css/modals.css">
     <link rel="stylesheet" href="css/panels.css">
+    <link rel="stylesheet" href="css/battle.css">
+    <link rel="stylesheet" href="css/deploy.css">
 </head>
 <body>
-    <!-- Vaqtincha Restart Tugmasi -->
-    <button id="temp-reset-btn" style="position:fixed; top:10px; right:10px; z-index:9999; padding:8px 12px; background:#e53935; color:white; border:none; border-radius:4px; font-weight:bold; cursor:pointer; box-shadow:0 2px 5px rgba(0,0,0,0.5);">🔄 Restart</button>
+    <!-- Login / Registratsiya Ekrani -->
+    <div id="login-screen" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:linear-gradient(135deg, #0a0e17, #141c32); z-index:10000; flex-direction:column; justify-content:center; align-items:center; color:#fff; font-family:'Cinzel',serif;">
+        <div style="font-size:48px; font-weight:900; color:#d4af37; margin-bottom:10px; text-shadow:0 0 20px rgba(212,175,55,0.5); text-align:center;">TOTAL CONQUEST</div>
+        <div style="font-size:20px; color:#aaa; margin-bottom:40px; font-family:sans-serif;">Imperatoringizni ro'yxatdan o'tkazing</div>
+        
+        <div style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); padding:30px; border-radius:16px; width:300px; display:flex; flex-direction:column; gap:20px; backdrop-filter:blur(10px);">
+            <div>
+                <label style="font-size:12px; color:#888; font-family:sans-serif; display:block; margin-bottom:5px;">Ismingiz (ixtiyoriy)</label>
+                <input type="text" id="login-name" placeholder="Masalan: Caesar" style="width:100%; padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.2); background:rgba(0,0,0,0.5); color:#fff; font-size:16px; box-sizing:border-box;">
+            </div>
+            <div>
+                <label style="font-size:12px; color:#888; font-family:sans-serif; display:block; margin-bottom:5px;">Yoshingiz (majburiy)</label>
+                <input type="number" id="login-age" placeholder="Masalan: 18" min="5" style="width:100%; padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.2); background:rgba(0,0,0,0.5); color:#fff; font-size:16px; box-sizing:border-box;">
+            </div>
+            <button onclick="LoginSystem.register()" style="background:linear-gradient(to bottom, #d4af37, #b8860b); color:#000; border:none; padding:12px; border-radius:8px; font-size:16px; font-weight:bold; cursor:pointer; font-family:'Cinzel',serif; transition:all 0.2s; margin-top:10px;">Jangni Boshlash</button>
+        </div>
+    </div>
+
+    <!-- Restart Tugmasi (yuqori o'rtada) -->
+    <button id="temp-reset-btn" onclick="Game.fullReset()" style="position:fixed; top:8px; left:50%; transform:translateX(-50%); z-index:9999; padding:6px 18px; background:linear-gradient(to bottom, #e53935, #b71c1c); color:white; border:none; border-radius:20px; font-weight:bold; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,0.5); font-size:12px; letter-spacing:1px;">🔄 Restart</button>
 
     <!-- Loading Screen -->
     <div id="loading-screen">
@@ -33,14 +53,21 @@
 
     <!-- HUD Top -->
     <div id="hud-top">
-        <div class="level-badge">
+        <div class="level-badge" onclick="ProfilePanel.toggle()" style="cursor:pointer;" title="Profilni ochish">
             <div class="level-shield" id="player-level">1</div>
             <div>
-                <div class="level-info-text">LEGATUS</div>
+                <div class="level-info-text" style="display:flex; justify-content:space-between; align-items:center;">
+                    <span id="profile-name-display">Askar</span>
+                    <span style="color:#d4af37; font-size:9px;">ℹ️ Profil</span>
+                </div>
                 <div class="level-xp-bar"><div class="level-xp-fill"></div></div>
+                <div class="level-xp-text" id="xp-text">0 / 50 XP</div>
             </div>
         </div>
-        <div class="hud-logo">TOTAL CONQUEST</div>
+        <div class="hud-center-info">
+            <div class="hud-logo">TOTAL CONQUEST</div>
+            <div class="hud-trophy">🏆 <span id="trophy-count">0</span></div>
+        </div>
         <div class="hud-resources">
             <div class="resource-item" id="res-gold-box" onclick="Resources.promptFill('gold')" style="cursor:pointer">
                 <span class="resource-icon">🪙</span>
@@ -61,6 +88,9 @@
         </div>
     </div>
 
+    <!-- Builder display -->
+    <div class="builder-display" id="builder-display" title="Quruvchilar (bosing — yangi sotib olish)">👷 1/1</div>
+
     <!-- Info displays -->
     <div id="coord-display">Tile: -</div>
     <div id="th-display">Town Hall: Lvl 1</div>
@@ -74,6 +104,12 @@
 
     <!-- Army Panel -->
     <div id="army-panel"></div>
+
+    <!-- Battle Panel -->
+    <div id="battle-panel"></div>
+
+    <!-- Research Panel -->
+    <div id="research-panel"></div>
 
     <!-- Shop Panel -->
     <div id="shop-panel"></div>
@@ -125,23 +161,41 @@
     <!-- JS fayllar (tartib muhim!) -->
     <script src="js/utils/helpers.js"></script>
     <script src="js/utils/timer.js"></script>
+    <script src="js/core/audioManager.js"></script>
     <script src="js/core/resources.js"></script>
     <script src="js/map/grid.js"></script>
     <script src="js/core/camera.js"></script>
     <script src="js/map/renderer.js"></script>
     <script src="js/map/minimap.js"></script>
     <script src="js/buildings/buildingData.js"></script>
+    <script src="js/core/xpSystem.js"></script>
+    <script src="js/core/builderSystem.js"></script>
     <script src="js/buildings/buildingManager.js"></script>
     <script src="js/buildings/buildingRenderer.js"></script>
+    <script src="js/map/obstacles.js"></script>
+    <script src="js/map/obstacleRenderer.js"></script>
     <script src="js/troops/troopData.js"></script>
     <script src="js/troops/troopManager.js"></script>
+    <script src="js/core/researchSystem.js"></script>
+    <script src="js/core/battleSystem.js"></script>
+    <script src="js/core/battleManager.js"></script>
+    <script src="js/core/allianceSystem.js"></script>
+    <script src="js/map/battleRenderer.js"></script>
     <script src="js/ui/toast.js"></script>
     <script src="js/ui/buildMenu.js"></script>
     <script src="js/ui/infoPanel.js"></script>
     <script src="js/ui/armyPanel.js"></script>
+    <script src="js/ui/battlePanel.js"></script>
+    <script src="js/ui/researchPanel.js"></script>
+    <script src="js/ui/alliancePanel.js"></script>
     <script src="js/ui/shopPanel.js"></script>
     <script src="js/ui/settingsPanel.js"></script>
+    <script src="js/ui/deployPanel.js"></script>
+    <script src="js/ui/profilePanel.js"></script>
+    <script src="js/core/databaseSystem.js"></script>
+    <script src="js/core/pathfinding.js"></script>
     <script src="js/core/saveSystem.js"></script>
+    <script src="js/core/login.js"></script>
     <script src="js/core/input.js"></script>
     <script src="js/core/game.js"></script>
 </body>

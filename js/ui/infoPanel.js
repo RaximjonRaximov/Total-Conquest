@@ -1,20 +1,95 @@
 // ============================================
-// INFO PANEL - Bino ma'lumotlari
+// INFO PANEL - Bino va to'siq ma'lumotlari
 // ============================================
 
 const InfoPanel = {
     currentBuilding: null,
+    currentObstacle: null,
 
     show(building) {
         this.currentBuilding = building;
+        this.currentObstacle = null;
         const panel = document.getElementById('info-panel');
         panel.classList.add('show');
         this.render();
     },
 
+    showObstacle(obstacle) {
+        this.currentObstacle = obstacle;
+        this.currentBuilding = null;
+        const panel = document.getElementById('info-panel');
+        panel.classList.add('show');
+        this.renderObstacle();
+    },
+
     hide() {
         this.currentBuilding = null;
+        this.currentObstacle = null;
         document.getElementById('info-panel').classList.remove('show');
+    },
+
+    renderObstacle() {
+        const obs = this.currentObstacle;
+        if (!obs) return;
+
+        const od = OBSTACLE_DATA[obs.type];
+        const panel = document.getElementById('info-panel');
+
+        let html = `<div class="info-title">${od.icon} ${od.name}</div>`;
+
+        // Pozitsiya
+        html += `<div class="info-row"><span class="label">Pozitsiya</span><span class="value">(${obs.x}, ${obs.y})</span></div>`;
+        html += `<div class="info-row"><span class="label">O'lcham</span><span class="value">${od.size[0]}x${od.size[1]}</span></div>`;
+
+        // Olib tashlash narxi
+        let costText = '';
+        for (const [res, amt] of Object.entries(od.removeCost)) {
+            const icons = { gold: '🪙', food: '🍎', diamond: '💎' };
+            costText += `${icons[res] || ''} ${Helpers.formatNumber(amt)} `;
+        }
+        html += `<div class="info-row"><span class="label">Olib tashlash</span><span class="value">${costText}</span></div>`;
+        html += `<div class="info-row"><span class="label">Vaqt</span><span class="value">${Helpers.formatTime(od.removeTime)}</span></div>`;
+
+        // Mukofotlar
+        if (od.rewards) {
+            let rewardText = '';
+            if (od.rewards.xp) rewardText += `⭐ ${od.rewards.xp} XP `;
+            if (od.rewards.diamond) rewardText += `💎 ${od.rewards.diamond} `;
+            html += `<div class="info-row"><span class="label">Mukofot</span><span class="value">${rewardText}</span></div>`;
+        }
+
+        // Olib tashlash holati
+        if (obs.removing && obs.timerId) {
+            const rem = timerManager.getRemaining(obs.timerId);
+            const prog = timerManager.getProgress(obs.timerId);
+            const gemCost = Helpers.calcGemCost(rem);
+            html += `<div class="info-row"><span class="label">Olib tashlanmoqda</span><span class="value">${Helpers.formatTime(rem)}</span></div>`;
+            html += `<div class="build-progress"><div class="build-progress-fill" style="width:${prog * 100}%"></div></div>`;
+            html += `<div class="info-buttons">
+                <div class="info-btn" onclick="InfoPanel.speedUpObstacle()">💎 ${gemCost} Tezlashtirish</div>
+            </div>`;
+        } else {
+            // Olib tashlash tugmasi
+            html += `<div class="info-buttons">
+                <div class="info-btn" onclick="InfoPanel.removeObstacle()">🪓 Olib tashlash</div>
+            </div>`;
+        }
+
+        panel.innerHTML = html;
+    },
+
+    removeObstacle() {
+        if (!this.currentObstacle) return;
+        const result = ObstacleManager.startRemove(this.currentObstacle.id);
+        if (result) {
+            this.renderObstacle();
+        }
+    },
+
+    speedUpObstacle() {
+        if (!this.currentObstacle) return;
+        ObstacleManager.speedUpRemove(this.currentObstacle.id);
+        this.renderObstacle();
     },
 
     render() {
@@ -189,6 +264,9 @@ const InfoPanel = {
     update() {
         if (this.currentBuilding && this.currentBuilding.building) {
             this.render();
+        }
+        if (this.currentObstacle && this.currentObstacle.removing) {
+            this.renderObstacle();
         }
     }
 };

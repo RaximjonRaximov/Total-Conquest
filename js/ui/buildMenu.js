@@ -100,6 +100,7 @@ const BuildMenu = {
     },
 
     startPlacing(type) {
+        AudioManager.playClick();
         this.placing = true;
         this.locked = false;
         this.placingType = type;
@@ -163,6 +164,7 @@ const BuildMenu = {
 
         const result = BuildingManager.place(this.placingType, x, y);
         if (result) {
+            AudioManager.playBuild();
             this.cancelPlacing();
         }
     },

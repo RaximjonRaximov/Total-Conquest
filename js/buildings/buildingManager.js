@@ -36,6 +36,12 @@ const BuildingManager = {
 
         // Narxni tekshirish va to'lash
         const levelData = bd.levels[1];
+        // Builder tekshirish (vaqt kerak bo'lsa)
+        if (levelData.time > 0 && !BuilderSystem.hasFreeBuilder()) {
+            Toast.show("Quruvchi band! Boshqa quruvchi kerak.", "warning");
+            return null;
+        }
+
         if (levelData.cost && Object.keys(levelData.cost).length > 0) {
             if (!Resources.canAfford(levelData.cost)) {
                 const missingDiamonds = Resources.getMissingCostInDiamonds(levelData.cost);
@@ -69,14 +75,24 @@ const BuildingManager = {
 
         // Qurilish vaqti
         if (levelData.time > 0) {
+            BuilderSystem.assignBuilder();
             building.timerId = timerManager.add(
                 levelData.time,
-                () => { building.building = false; building.timerId = null; },
+                () => {
+                    building.building = false;
+                    building.timerId = null;
+                    BuilderSystem.freeBuilder();
+                    // XP mukofoti
+                    const xp = XPSystem.getBuildXP(type, 1);
+                    XPSystem.addXP(xp);
+                },
                 null,
                 { buildingId: id }
             );
         } else {
             building.building = false;
+            // Bepul binolar ham XP beradi
+            XPSystem.addXP(1);
         }
 
         this.buildings[id] = building;
@@ -196,6 +212,12 @@ const BuildingManager = {
         const levelData = bd.levels[nextLevel];
         if (!levelData) return false;
 
+        // Builder tekshirish
+        if (!BuilderSystem.hasFreeBuilder()) {
+            Toast.show("Quruvchi band! Boshqa quruvchi kerak.", "warning");
+            return false;
+        }
+
         if (!Resources.canAfford(levelData.cost)) {
             const missingDiamonds = Resources.getMissingCostInDiamonds(levelData.cost);
             if (Resources.diamond >= missingDiamonds) {
@@ -210,6 +232,7 @@ const BuildingManager = {
             Resources.spendMultiple(levelData.cost);
         }
 
+        BuilderSystem.assignBuilder();
         b.building = true;
         b.timerId = timerManager.add(
             levelData.time,
@@ -219,6 +242,11 @@ const BuildingManager = {
                 b.hp = levelData.hp;
                 b.building = false;
                 b.timerId = null;
+                BuilderSystem.freeBuilder();
+
+                // XP mukofoti
+                const xp = XPSystem.getBuildXP(b.type, nextLevel);
+                XPSystem.addXP(xp);
 
                 if (b.type === 'cityHall') {
                     Game.townHallLevel = b.level;
@@ -317,14 +345,13 @@ const BuildingManager = {
             if (!lv || !lv.production) continue;
 
             const elapsed = (now - b.lastCollect) / 1000;
-            const produced = lv.production * elapsed / 60; // per minute
+            if (elapsed < 1) continue; // At kamida 1 sekund o'tgan bo'lsin
 
-            if (b.type === 'villa') {
-                b.storedResource += produced;
-            } else if (b.type === 'farm') {
-                b.storedResource += produced;
-            } else if (b.type === 'treeOfLife') {
-                b.storedResource += produced;
+            const produced = lv.production * elapsed / 60; // per minute
+            const capacity = lv.capacity || 999999;
+
+            if (b.storedResource < capacity) {
+                b.storedResource = Math.min(capacity, b.storedResource + produced);
             }
 
             b.lastCollect = now;

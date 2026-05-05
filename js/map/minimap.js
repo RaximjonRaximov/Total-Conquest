@@ -32,12 +32,24 @@ const Minimap = {
             for (let x = 0; x < Grid.SIZE; x++) {
                 const tile = Grid.tiles[y][x];
                 if (tile.buildingId !== null) {
-                    const b = BuildingManager.buildings[tile.buildingId];
-                    if (b) {
-                        const bd = BUILDING_DATA[b.type];
-                        this.ctx.fillStyle = bd.minimapColor || '#888';
+                    if (typeof tile.buildingId === 'string' && tile.buildingId.startsWith('obs_')) {
+                        // To'siq
+                        const obsId = parseInt(tile.buildingId.replace('obs_', ''));
+                        const obs = ObstacleManager.obstacles[obsId];
+                        if (obs) {
+                            const od = OBSTACLE_DATA[obs.type];
+                            this.ctx.fillStyle = od.color || '#3a6b3a';
+                        } else {
+                            this.ctx.fillStyle = this._grassColor(x, y);
+                        }
                     } else {
-                        this.ctx.fillStyle = this._grassColor(x, y);
+                        const b = BuildingManager.buildings[tile.buildingId];
+                        if (b) {
+                            const bd = BUILDING_DATA[b.type];
+                            this.ctx.fillStyle = bd.minimapColor || '#888';
+                        } else {
+                            this.ctx.fillStyle = this._grassColor(x, y);
+                        }
                     }
                 } else {
                     this.ctx.fillStyle = this._grassColor(x, y);

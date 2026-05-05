@@ -287,6 +287,14 @@ const Input = {
     },
 
     _handleClick(screenX, screenY) {
+        if (Game.mode === 'attack') {
+            const g = Camera.toGrid(screenX, screenY);
+            if (g.x >= 0 && g.x < Grid.SIZE && g.y >= 0 && g.y < Grid.SIZE) {
+                DeployPanel.handleClick(g.x, g.y);
+            }
+            return;
+        }
+
         // Joylashtirish rejimi
         if (BuildMenu.placing) {
             // BuildMenu.handleClick ichida locked/unlocked logika bor
@@ -299,9 +307,26 @@ const Input = {
 
         const building = BuildingManager.getAt(g.x, g.y);
         if (building) {
+            // Agar bino resurs ishlab chiqaruvchi bo'lsa va unda resurs bo'lsa - yig'amiz
+            if (!building.building && building.storedResource >= 1) {
+                const collected = BuildingManager.collect(building.id);
+                if (collected > 0) {
+                    AudioManager.playCoin(); // Ovoz chiqarish
+                    Toast.show(`+${collected} resurs yig'ildi!`, 'info');
+                    return; // Panelni ochmaymiz, faqat yig'amiz
+                }
+            }
             InfoPanel.show(building);
-        } else {
-            InfoPanel.hide();
+            return;
         }
+
+        // To'siqni tekshirish
+        const obstacle = ObstacleManager.getAt(g.x, g.y);
+        if (obstacle) {
+            InfoPanel.showObstacle(obstacle);
+            return;
+        }
+
+        InfoPanel.hide();
     }
 };

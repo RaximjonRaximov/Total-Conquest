@@ -67,16 +67,18 @@ const TroopManager = {
         // Kazarma darajasi yetarlimi?
         if (b.level < data.unlockBarracks) return false;
 
-        // Sig'im tekshirish
-        if (this.getTotal() + this.getQueueTotal() >= this.maxTroops) return false;
+        // Sig'im tekshirish (jami armiya + barcha navbatlar)
+        if (this.getTotal() + this.getQueueTotal() >= this.maxTroops) {
+            Toast.show("Armiya sig'imi to'lgan!", "warning");
+            return false;
+        }
 
         // Narx tekshirish
         if (!Resources.canAfford(data.cost)) {
             const missingDiamonds = Resources.getMissingCostInDiamonds(data.cost);
             if (Resources.diamond >= missingDiamonds) {
-                const ans = confirm(`Sizda yetarli resurs yo'q. Kamini ${missingDiamonds} olmos evaziga to'laysizmi?`);
-                if (!ans) return false;
                 Resources.spendMissingWithDiamonds(data.cost, missingDiamonds);
+                Toast.show(`💎 ${missingDiamonds} olmos ishlatildi`, 'info');
             } else {
                 Toast.show("Resurs va olmos yetarli emas!", "error");
                 return false;
@@ -87,34 +89,53 @@ const TroopManager = {
 
         // Navbatga qo'shish
         if (!this.queues[barracksId]) this.queues[barracksId] = [];
+        
+        const isQueueEmpty = this.queues[barracksId].length === 0;
 
-        const timerId = timerManager.add(
+        const newItem = {
+            type: type,
+            timerId: null,
+            startTime: Date.now(),
+            duration: data.time
+        };
+
+        this.queues[barracksId].push(newItem);
+
+        // Agar navbat bo'sh bo'lgan bo'lsa, darhol boshlaymiz
+        if (isQueueEmpty) {
+            this._startTraining(barracksId, 0);
+        }
+
+        return true;
+    },
+
+    // Navbatdagi ma'lum bir askarni tayyorlashni boshlash
+    _startTraining(barracksId, index) {
+        const queue = this.queues[barracksId];
+        if (!queue || !queue[index]) return;
+
+        const item = queue[index];
+        const data = TROOP_DATA[item.type];
+
+        item.timerId = timerManager.add(
             data.time,
             () => {
                 // Askar tayyor
-                this.army[type] = (this.army[type] || 0) + 1;
+                this.army[item.type] = (this.army[item.type] || 0) + 1;
                 this.totalTroops = this.getTotal();
-
-                // Navbatdan olib tashlash
-                const queue = this.queues[barracksId];
-                if (queue) {
-                    const idx = queue.findIndex(q => q.timerId === timerId);
-                    if (idx !== -1) queue.splice(idx, 1);
-                }
-
-                // Toast xabar
                 Toast.show(`${data.icon} ${data.name} tayyor!`, 'success');
+
+                // Navbatdan o'chirish (birinchi elementni)
+                queue.shift();
+
+                // Keyingisini boshlash
+                if (queue.length > 0) {
+                    this._startTraining(barracksId, 0);
+                }
             },
             null,
-            { troopType: type, barracksId: barracksId }
+            { troopType: item.type, barracksId: barracksId }
         );
-
-        this.queues[barracksId].push({
-            type: type,
-            timerId: timerId
-        });
-
-        return true;
     },
 
     // Navbatdagi jami askarlar
@@ -136,17 +157,28 @@ const TroopManager = {
         const queue = this.queues[barracksId];
         if (!queue || queue.length === 0) return false;
 
-        const last = queue[queue.length - 1];
-        const data = TROOP_DATA[last.type];
+        // Oxirgi qo'shilgan askarni topamiz
+        const lastIdx = queue.length - 1;
+        const item = queue[lastIdx];
+        const data = TROOP_DATA[item.type];
 
-        // Timerdan o'chirish
-        timerManager.cancel(last.timerId);
-        queue.pop();
+        // Agar bu birinchi (hozir o'zi o'qiyotgan) bo'lsa
+        if (lastIdx === 0 && item.timerId !== null) {
+            timerManager.cancel(item.timerId);
+            queue.shift();
+            // Keyingisini boshlash (agar bo'lsa)
+            if (queue.length > 0) {
+                this._startTraining(barracksId, 0);
+            }
+        } else {
+            // Agar u shunchaki navbatda turgan bo'lsa
+            queue.splice(lastIdx, 1);
+        }
 
-        // Narxning 50% ini qaytarish
+        // Narxni qaytarish (100% qaytarish yaxshiroq foydalanuvchi uchun)
         if (data.cost) {
             for (const [res, amt] of Object.entries(data.cost)) {
-                Resources.add(res, Math.floor(amt * 0.5));
+                Resources.add(res, amt);
             }
         }
 

@@ -4,15 +4,31 @@
 // ============================================
 
 const SaveSystem = {
-    SAVE_KEY: 'totalConquest_save',
+    SAVE_KEY_PREFIX: 'totalConquest_save_',
+    playerId: 'default',
     AUTO_SAVE_INTERVAL: 30000, // 30 soniya
     _autoSaveTimer: null,
 
+    setPlayerId(id) {
+        this.playerId = id;
+    },
+
+    get _key() {
+        return this.SAVE_KEY_PREFIX + this.playerId;
+    },
+
     // O'yinni saqlash
     save() {
+        // MUHIM: Hujum rejimida saqlash MUMKIN EMAS!
+        // Aks holda dushman bazasi o'yinchining bazasi sifatida saqlanib qoladi
+        if (Game.mode === 'attack' || BattleManager.active) {
+            console.warn('Hujum rejimida saqlash bloklandi!');
+            return false;
+        }
         try {
+            const buildingsData = this._serializeBuildings();
             const data = {
-                version: 2,
+                version: 3,
                 timestamp: Date.now(),
                 townHallLevel: Game.townHallLevel,
                 resources: {
@@ -21,12 +37,28 @@ const SaveSystem = {
                     diamond: Resources.diamond,
                     goldenApple: Resources.goldenApple
                 },
-                buildings: this._serializeBuildings(),
+                buildings: buildingsData,
                 army: { ...TroopManager.army },
-                nextBuildingId: BuildingManager.nextId
+                nextBuildingId: BuildingManager.nextId,
+                // Yangi tizimlar
+                xp: XPSystem.xp,
+                level: XPSystem.level,
+                obstacles: ObstacleManager.serialize(),
+                obstacleNextId: ObstacleManager.nextId,
+                trophies: BattleSystem.trophies,
+                battleLog: BattleSystem.battleLog.slice(0, 10),
+                lastBattle: BattleSystem.lastBattle,
+                researchLevels: { ...ResearchSystem.levels },
+                builderTotal: BuilderSystem.totalBuilders,
+                alliance: AllianceSystem.serialize()
             };
 
-            localStorage.setItem(this.SAVE_KEY, JSON.stringify(data));
+            localStorage.setItem(this._key, JSON.stringify(data));
+            
+            // Database-ga o'yinchining bazasini sinxronlash
+            if (typeof DatabaseSystem !== 'undefined') {
+                DatabaseSystem.syncCurrentUser(JSON.stringify(buildingsData));
+            }
             return true;
         } catch (e) {
             console.error('Saqlashda xato:', e);
@@ -37,7 +69,7 @@ const SaveSystem = {
     // O'yinni yuklash
     load() {
         try {
-            const raw = localStorage.getItem(this.SAVE_KEY);
+            const raw = localStorage.getItem(this._key);
             if (!raw) return false;
 
             const data = JSON.parse(raw);
@@ -46,7 +78,7 @@ const SaveSystem = {
             // Resurslar
             Resources.gold = data.resources.gold || 1000;
             Resources.food = data.resources.food || 500;
-            Resources.diamond = 999999; // data.resources.diamond o'rniga hozircha har safar 999999 beramiz
+            Resources.diamond = data.resources.diamond || 999999;
             Resources.goldenApple = data.resources.goldenApple || 0;
 
             // Town Hall level
@@ -101,6 +133,44 @@ const SaveSystem = {
                 TroopManager.totalTroops = TroopManager.getTotal();
             }
 
+            // XP tizimi
+            if (data.xp !== undefined) {
+                XPSystem.xp = data.xp;
+                XPSystem.level = data.level || 1;
+            }
+
+            // To'siqlar
+            if (data.obstacles) {
+                ObstacleManager.deserialize(data.obstacles);
+                if (data.obstacleNextId) ObstacleManager.nextId = data.obstacleNextId;
+            }
+
+            // Jang tizimi
+            if (data.trophies !== undefined) {
+                BattleSystem.trophies = data.trophies;
+            }
+            if (data.battleLog) {
+                BattleSystem.battleLog = data.battleLog;
+            }
+            if (data.lastBattle) {
+                BattleSystem.lastBattle = data.lastBattle;
+            }
+
+            // Tadqiqot
+            if (data.researchLevels) {
+                ResearchSystem.levels = data.researchLevels;
+            }
+
+            // Quruvchi
+            if (data.builderTotal) {
+                BuilderSystem.totalBuilders = data.builderTotal;
+            }
+
+            // Ittifoq
+            if (data.alliance) {
+                AllianceSystem.deserialize(data.alliance);
+            }
+
             return true;
         } catch (e) {
             console.error('Yuklashda xato:', e);
@@ -129,12 +199,12 @@ const SaveSystem = {
 
     // Saqlangan ma'lumot bormi?
     hasSave() {
-        return localStorage.getItem(this.SAVE_KEY) !== null;
+        return localStorage.getItem(this._key) !== null;
     },
 
     // Saqlangan ma'lumotni o'chirish
     deleteSave() {
-        localStorage.removeItem(this.SAVE_KEY);
+        localStorage.removeItem(this._key);
     },
 
     // Auto-save boshlash
@@ -155,7 +225,7 @@ const SaveSystem = {
     // Oxirgi saqlangan vaqt
     getLastSaveTime() {
         try {
-            const raw = localStorage.getItem(this.SAVE_KEY);
+            const raw = localStorage.getItem(this._key);
             if (!raw) return null;
             const data = JSON.parse(raw);
             return data.timestamp || null;

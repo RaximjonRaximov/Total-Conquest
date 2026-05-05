@@ -1,0 +1,195 @@
+/* ===== Deploy Panel ===== */
+#deploy-panel {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: linear-gradient(0deg, rgba(15,20,35,0.95) 0%, rgba(15,20,35,0.8) 100%);
+    border-top: 1px solid rgba(229,57,53,0.5);
+    display: none;
+    flex-direction: column;
+    z-index: 100;
+    backdrop-filter: blur(10px);
+}
+
+.deploy-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.deploy-loot {
+    display: flex;
+    gap: 16px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #e0e0e0;
+}
+
+.deploy-progress {
+    font-size: 14px;
+    font-weight: 700;
+    color: #ffd700;
+    font-family: 'Cinzel', serif;
+}
+
+.deploy-btn-end {
+    background: rgba(229,57,53,0.2);
+    border: 1px solid rgba(229,57,53,0.6);
+    color: #ffcdd2;
+    padding: 6px 16px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.deploy-btn-end:hover {
+    background: rgba(229,57,53,0.4);
+}
+
+.deploy-troops {
+    display: flex;
+    gap: 8px;
+    padding: 12px 16px;
+    overflow-x: auto;
+}
+
+.deploy-troop {
+    width: 60px;
+    height: 60px;
+    background: rgba(255,255,255,0.05);
+    border: 2px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.deploy-troop:hover {
+    background: rgba(255,255,255,0.1);
+}
+
+.deploy-troop.selected {
+    border-color: #ffd700;
+    background: rgba(255,215,0,0.15);
+    transform: translateY(-4px);
+    box-shadow: 0 4px 15px rgba(255,215,0,0.3);
+}
+
+.deploy-troop-icon {
+    font-size: 28px;
+}
+
+.deploy-troop-count {
+    position: absolute;
+    bottom: -6px;
+    background: #e53935;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 10px;
+    border: 1px solid #b71c1c;
+}
+
+/* ===== Battle Result Modal ===== */
+#battle-result-modal {
+    z-index: 1000;
+}
+
+.battle-result-box {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    background: linear-gradient(145deg, rgba(20,28,50,0.95), rgba(10,14,23,0.95));
+    border: 2px solid;
+    border-radius: 16px;
+    padding: 24px;
+    text-align: center;
+    width: 320px;
+    box-shadow: 0 10px 50px rgba(0,0,0,0.8);
+    backdrop-filter: blur(10px);
+}
+
+.battle-result-box.victory { border-color: rgba(255,215,0,0.6); }
+.battle-result-box.defeat { border-color: rgba(229,57,53,0.6); }
+
+.br-title {
+    font-family: 'Cinzel', serif;
+    font-size: 28px;
+    font-weight: 900;
+    margin-bottom: 8px;
+}
+
+.victory .br-title { color: #ffd700; text-shadow: 0 0 20px rgba(255,215,0,0.4); }
+.defeat .br-title { color: #e53935; text-shadow: 0 0 20px rgba(229,57,53,0.4); }
+
+.br-stars {
+    font-size: 32px;
+    letter-spacing: 4px;
+    margin-bottom: 12px;
+}
+
+.br-percent {
+    font-size: 16px;
+    color: #fff;
+    font-weight: 700;
+    margin-bottom: 20px;
+}
+
+.br-loot {
+    background: rgba(0,0,0,0.3);
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 24px;
+}
+
+.br-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+    color: #e0e0e0;
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.br-row:last-child { border-bottom: none; }
+
+.br-btn {
+    display: inline-block;
+    padding: 12px 32px;
+    border-radius: 12px;
+    font-family: 'Cinzel', serif;
+    font-weight: 700;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: #fff;
+}
+
+.victory .br-btn {
+    background: linear-gradient(145deg, #4caf50, #388e3c);
+    border: 1px solid #81c784;
+}
+
+.defeat .br-btn {
+    background: linear-gradient(145deg, #f44336, #d32f2f);
+    border: 1px solid #e57373;
+}
+
+.br-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+}
+
+/* CSS da scrollbar */
+.deploy-troops::-webkit-scrollbar { height: 4px; }
+.deploy-troops::-webkit-scrollbar-track { background: transparent; }
+.deploy-troops::-webkit-scrollbar-thumb { background: rgba(255,215,0,0.3); border-radius: 2px; }

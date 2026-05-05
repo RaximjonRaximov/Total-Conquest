@@ -3,12 +3,14 @@
 // ============================================
 
 const Game = {
+    mode: 'home', // 'home' | 'attack'
     townHallLevel: 1,
     canvas: null,
     ctx: null,
     running: false,
     lastInfoUpdate: 0,
     lastArmyUpdate: 0,
+    lastBattleUpdate: 0,
 
     init() {
         this.canvas = document.getElementById('gameCanvas');
@@ -16,6 +18,7 @@ const Game = {
 
         // Toast tizimini ishga tushirish
         Toast.init();
+        AudioManager.init();
 
         // Tizimlarni ishga tushirish
         Grid.init();
@@ -30,6 +33,8 @@ const Game = {
         } else {
             // Boshlang'ich binolar
             BuildingManager.placeStarterBuildings();
+            // Boshlang'ich to'siqlar
+            ObstacleManager.placeInitialObstacles();
         }
 
         // Kamerani markazga
@@ -50,6 +55,8 @@ const Game = {
         // Resurslarni ko'rsatish
         Resources.updateDisplay();
         TroopManager.updateCapacity();
+        XPSystem.updateDisplay();
+        BuilderSystem.updateDisplay();
         document.getElementById('th-display').textContent = 'Town Hall: Lvl ' + this.townHallLevel;
 
         // Auto-save boshlash
@@ -57,6 +64,10 @@ const Game = {
 
         // Sahifadan chiqishda saqlash
         window.addEventListener('beforeunload', () => {
+            // Agar hujum rejimida bo'lsak, avval baza ma'lumotlarini tiklash
+            if (BattleManager.active && BattleManager.playerBaseData) {
+                BattleManager.returnHome();
+            }
             SaveSystem.save();
         });
 
@@ -73,14 +84,27 @@ const Game = {
         // Timerlarni yangilash
         timerManager.update();
 
-        // Resurs ishlab chiqarishni yangilash
-        BuildingManager.updateProduction();
+        if (this.mode === 'home') {
+            // Resurs ishlab chiqarishni yangilash
+            BuildingManager.updateProduction();
+        } else if (this.mode === 'attack') {
+            // Jangni yangilash
+            BattleManager.update();
+        }
 
         // Xaritani chizish
         MapRenderer.renderMap();
 
+        // To'siqlarni chizish (binolardan oldin)
+        ObstacleRenderer.renderAll(this.ctx);
+
         // Binolarni chizish
         BuildingRenderer.renderAll(this.ctx);
+
+        if (this.mode === 'attack') {
+            // Askarlar va snaryadlarni chizish
+            BattleRenderer.renderAll(this.ctx);
+        }
 
         // Ghost bino (joylashtirish rejimida)
         BuildMenu.renderGhost(this.ctx);
@@ -115,63 +139,101 @@ const Game = {
             coordEl.textContent += ' | 🔄 Ko\'chirish...';
         }
 
-        // Info panel yangilash (har 0.5s)
-        const now = Date.now();
-        if (now - this.lastInfoUpdate > 500) {
-            this.lastInfoUpdate = now;
-            InfoPanel.update();
-        }
+        if (this.mode === 'home') {
+            // Info panel yangilash (har 0.5s)
+            const now = Date.now();
+            if (now - this.lastInfoUpdate > 500) {
+                this.lastInfoUpdate = now;
+                InfoPanel.update();
+            }
 
-        // Army panel yangilash (har 1s)
-        if (now - this.lastArmyUpdate > 1000) {
-            this.lastArmyUpdate = now;
-            ArmyPanel.update();
+            // Army panel yangilash (har 1s)
+            if (now - this.lastArmyUpdate > 1000) {
+                this.lastArmyUpdate = now;
+                ArmyPanel.update();
+                ResearchPanel.update();
+            }
+
+            // Battle panel yangilash (har 1s)
+            if (now - this.lastBattleUpdate > 1000) {
+                this.lastBattleUpdate = now;
+                BattlePanel.update();
+            }
         }
 
         requestAnimationFrame(() => this.gameLoop());
     },
+    // Barcha ma'lumotlarni o'chirib, o'yinni qaytadan boshlash
+    fullReset() {
+        if (!confirm("O'yin noldan boshlanadi. BARCHA ma'lumotlaringiz o'chadi!\n\nIshonchingiz komilmi?")) return;
+        
+        SaveSystem.stopAutoSave();
+        
+        // Hujum rejimida bo'lsa, avval uyga qaytish
+        if (BattleManager.active) {
+            BattleManager.returnHome();
+        }
+        
+        // Joriy saqlash faylini o'chirish
+        SaveSystem.deleteSave();
+        
+        // Database dan ham o'chirish
+        if (typeof DatabaseSystem !== 'undefined') {
+            DatabaseSystem.logout(true);
+        }
+        
+        // Sahifani qaytadan yuklash
+        location.reload();
+    },
 
     _setupButtons() {
-        // Restart tugmasi
-        const resetBtn = document.getElementById('temp-reset-btn');
-        if (resetBtn) {
-            resetBtn.onclick = () => {
-                if (confirm("O'yin noldan boshlanadi. Ishonchingiz komilmi?")) {
-                    localStorage.removeItem('totalConquest_save');
-                    location.reload();
-                }
-            };
-        }
+        // Restart tugmasi (fullReset onclick da, qo'shimcha handler shart emas)
 
         // Qurish tugmasi
         document.getElementById('btn-build').onclick = () => {
+            AudioManager.playClick();
             this._closeAllPanels();
             BuildMenu.toggle();
         };
 
         // Askar tugmasi
         document.getElementById('btn-army').onclick = () => {
+            AudioManager.playClick();
             this._closeAllPanels();
             ArmyPanel.toggle();
         };
 
-        // Ilm-fan (hozircha placeholder)
-        document.getElementById('btn-research').onclick = () => this._showMessage('Ilm-fan tez orada...');
+        // Ilm-fan
+        document.getElementById('btn-research').onclick = () => {
+            AudioManager.playClick();
+            this._closeAllPanels();
+            ResearchPanel.toggle();
+        };
 
-        // Ittifoq (hozircha placeholder)
-        document.getElementById('btn-alliance').onclick = () => this._showMessage('Ittifoq tez orada...');
+        // Ittifoq
+        document.getElementById('btn-alliance').onclick = () => {
+            AudioManager.playClick();
+            this._closeAllPanels();
+            AlliancePanel.toggle();
+        };
 
-        // Jang (hozircha placeholder)
-        document.getElementById('btn-battle').onclick = () => this._showMessage('Jang tizimi tez orada...');
+        // Jang
+        document.getElementById('btn-battle').onclick = () => {
+            AudioManager.playClick();
+            this._closeAllPanels();
+            BattlePanel.toggle();
+        };
 
         // Do'kon
         document.getElementById('btn-shop').onclick = () => {
+            AudioManager.playClick();
             this._closeAllPanels();
             ShopPanel.toggle();
         };
 
         // Sozlamalar
         document.getElementById('btn-settings').onclick = () => {
+            AudioManager.playClick();
             this._closeAllPanels();
             SettingsPanel.toggle();
         };
@@ -180,6 +242,21 @@ const Game = {
         document.getElementById('modal-overlay').onclick = () => {
             this._closeAllPanels();
         };
+
+        // Quruvchi tugmasi
+        const builderBtn = document.getElementById('builder-display');
+        if (builderBtn) {
+            builderBtn.onclick = () => {
+                const cost = BuilderSystem.getNextBuilderCost();
+                if (cost === null) {
+                    Toast.show("Maksimal quruvchi soni!", "info");
+                    return;
+                }
+                if (confirm(`Yangi quruvchi sotib olish: 💎 ${cost} olmos. Rozimisiz?`)) {
+                    BuilderSystem.buyBuilder();
+                }
+            };
+        }
     },
 
     _closeAllPanels() {
@@ -187,6 +264,8 @@ const Game = {
         if (ArmyPanel.visible) ArmyPanel.hide();
         if (ShopPanel.visible) ShopPanel.hide();
         if (SettingsPanel.visible) SettingsPanel.hide();
+        if (BattlePanel.visible) BattlePanel.hide();
+        if (ResearchPanel.visible) ResearchPanel.hide();
     },
 
     _showMessage(text) {
@@ -224,7 +303,14 @@ function startLoading() {
             setTimeout(() => {
                 loadScreen.classList.add('hidden');
                 setTimeout(() => loadScreen.remove(), 800);
-                Game.init();
+                
+                const loggedIn = LoginSystem.init();
+                if (loggedIn) {
+                    Game.init();
+                } else {
+                    // Kutib turamiz, login.js dagi register() Game.init() ni chaqiradi
+                    // Yo'q, register() ichiga Game.init() ni qo'shib qo'yamiz.
+                }
             }, 400);
         }
     }, 180);
