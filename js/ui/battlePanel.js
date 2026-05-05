@@ -78,6 +78,9 @@ const BattlePanel = {
                 <div style="flex:1; text-align:center; padding:10px; cursor:pointer; font-weight:bold; transition:all 0.2s; ${this.activeTab === 'online' ? 'color:#ffd700; border-bottom:2px solid #ffd700;' : 'color:#888;'}" onclick="BattlePanel.setTab('online')">
                     🌍 Multiplayer
                 </div>
+                <div style="flex:1; text-align:center; padding:10px; cursor:pointer; font-weight:bold; transition:all 0.2s; ${this.activeTab === 'history' ? 'color:#ffd700; border-bottom:2px solid #ffd700;' : 'color:#888;'}" onclick="BattlePanel.setTab('history')">
+                    📜 Tarix
+                </div>
             </div>
         `;
 
@@ -87,8 +90,10 @@ const BattlePanel = {
 
         if (this.activeTab === 'offline') {
             html += this._renderOffline(canBattle, total);
-        } else {
+        } else if (this.activeTab === 'online') {
             html += this._renderOnline(canBattle, total);
+        } else if (this.activeTab === 'history') {
+            html += this._renderHistory();
         }
 
         // Jang tarixi
@@ -271,6 +276,66 @@ const BattlePanel = {
     closeResult() {
         this.battleResult = null;
         this.render();
+    },
+
+    _renderHistory() {
+        const logs = BattleSystem.battleLog;
+        if (logs.length === 0) {
+            return `<div style="text-align:center; padding:40px 20px; color:#888;">
+                <div style="font-size:48px; margin-bottom:15px;">📜</div>
+                <div style="font-size:16px;">Hali jang qilinmagan</div>
+                <div style="font-size:12px; margin-top:5px;">Hikoya yoki Multiplayer rejimida jang qiling!</div>
+            </div>`;
+        }
+
+        let wins = 0, losses = 0, totalGold = 0, totalFood = 0;
+        for (const l of logs) {
+            if (l.victory) wins++; else losses++;
+            totalGold += l.goldLoot || 0;
+            totalFood += l.foodLoot || 0;
+        }
+
+        let html = `
+            <div style="display:flex; justify-content:space-around; margin-bottom:15px; padding:10px; background:rgba(255,255,255,0.05); border-radius:8px;">
+                <div style="text-align:center;">
+                    <div style="font-size:20px; font-weight:bold; color:#4caf50;">${wins}</div>
+                    <div style="font-size:11px; color:#aaa;">G'alaba</div>
+                </div>
+                <div style="text-align:center;">
+                    <div style="font-size:20px; font-weight:bold; color:#f44336;">${losses}</div>
+                    <div style="font-size:11px; color:#aaa;">Mag'lub</div>
+                </div>
+                <div style="text-align:center;">
+                    <div style="font-size:20px; font-weight:bold; color:#ffd700;">🪙 ${Helpers.formatNumber(totalGold)}</div>
+                    <div style="font-size:11px; color:#aaa;">Jami o'lja</div>
+                </div>
+            </div>
+            <div style="max-height:300px; overflow-y:auto;">
+        `;
+
+        for (const log of logs) {
+            const timeAgo = this._timeAgo(log.time);
+            const starsStr = '⭐'.repeat(log.stars) + '☆'.repeat(3 - log.stars);
+            const trophyColor = log.trophyChange >= 0 ? '#4caf50' : '#f44336';
+            const trophySign = log.trophyChange >= 0 ? '+' : '';
+            
+            html += `
+                <div style="display:flex; align-items:center; padding:10px; margin-bottom:6px; background:${log.victory ? 'rgba(76,175,80,0.1)' : 'rgba(244,67,54,0.1)'}; border-radius:8px; border-left:3px solid ${log.victory ? '#4caf50' : '#f44336'};">
+                    <div style="flex:1;">
+                        <div style="font-weight:bold; margin-bottom:3px;">${log.victory ? '⚔️' : '🛡️'} ${log.baseName || 'Noma\'lum'}</div>
+                        <div style="font-size:11px;">${starsStr}</div>
+                    </div>
+                    <div style="text-align:right; font-size:12px;">
+                        <div>🪙 +${Helpers.formatNumber(log.goldLoot || 0)}</div>
+                        <div style="color:${trophyColor};">🏆 ${trophySign}${log.trophyChange || 0}</div>
+                        <div style="color:#888; font-size:10px;">${timeAgo}</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        html += '</div>';
+        return html;
     },
 
     _timeAgo(timestamp) {

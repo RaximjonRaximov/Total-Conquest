@@ -54,17 +54,15 @@ const Resources = {
         if (type === 'goldenApple') diamondCost = Math.ceil(missing / 10);
         else diamondCost = Math.ceil(missing / 100);
         
-        const typeNames = { gold: "Oltin", food: "Olma", goldenApple: "Olma Oltin" };
-        const ans = confirm(`${typeNames[type]} omborini to'ldirish uchun ${diamondCost} olmos kerak. Sotib olasizmi?`);
-        if (ans) {
-            if (this.diamond >= diamondCost) {
-                this.diamond -= diamondCost;
-                this[type] = capacity;
-                this.updateDisplay();
-                Toast.show(`${typeNames[type]} ombori to'ldirildi!`, 'success');
-            } else {
-                Toast.show("Olmos yetarli emas!", "error");
-            }
+        if (this.diamond >= diamondCost) {
+            this.diamond -= diamondCost;
+            this[type] = capacity;
+            this.updateDisplay();
+            const typeNames = { gold: "Oltin", food: "Olma", goldenApple: "Olma Oltin" };
+            Toast.show(`💎 ${typeNames[type]} ombori to'ldirildi! (-${diamondCost} olmos)`, 'success');
+            AudioManager.playCoin();
+        } else {
+            Toast.show("Olmos yetarli emas!", "error");
         }
     },
 

@@ -321,6 +321,10 @@ const BattleManager = {
                 continue;
             }
 
+            // Shifobaxsh askarlar binolarga hujum qilmaydi (ular alohida logikada boshqariladi)
+            const troopData = TROOP_DATA[t.type];
+            if (troopData && troopData.stats.type === 'healer') continue;
+
             // Nishonni qidirish
             if (!t.target || !BuildingManager.buildings[t.target]) {
                 t.target = this._findNearestBuilding(t.x, t.y, t.type === 'battering_ram');
@@ -352,7 +356,7 @@ const BattleManager = {
                     const nx = t.x + Math.cos(angle) * t.speed * delta;
                     const ny = t.y + Math.sin(angle) * t.speed * delta;
                     
-                    // Oldindagi tile ni tekshirish
+            // Oldindagi tile ni tekshirish
                     const gx = Math.floor(nx);
                     const gy = Math.floor(ny);
                     const tile = Grid.tiles[gy] ? Grid.tiles[gy][gx] : null;
@@ -375,6 +379,64 @@ const BattleManager = {
                 }
             } else {
                 t.state = 'idle';
+            }
+        }
+
+        // === SHIFOBAXSH (Healer) logikasi ===
+        for (const t of this.troops) {
+            if (t.hp <= 0) continue;
+            const tData = TROOP_DATA[t.type];
+            if (!tData || tData.stats.type !== 'healer') continue;
+
+            // Eng kam HP li do'st askarni topish
+            let weakest = null;
+            let lowestHpRatio = 1;
+            for (const ally of this.troops) {
+                if (ally.id === t.id || ally.hp <= 0) continue;
+                if (TROOP_DATA[ally.type] && TROOP_DATA[ally.type].stats.type === 'healer') continue;
+                const ratio = ally.hp / ally.maxHp;
+                if (ratio < lowestHpRatio) {
+                    lowestHpRatio = ratio;
+                    weakest = ally;
+                }
+            }
+
+            if (weakest && lowestHpRatio < 0.95) {
+                const dist = Helpers.distance(t.x, t.y, weakest.x, weakest.y);
+                if (dist <= tData.stats.range) {
+                    // Davolash
+                    t.state = 'attacking'; // aslida "healing"
+                    if (now - t.lastAttack >= 1000) {
+                        t.lastAttack = now;
+                        weakest.hp = Math.min(weakest.maxHp, weakest.hp + tData.stats.healRate);
+                    }
+                } else {
+                    // Yaqinlashish
+                    t.state = 'moving';
+                    const angle = Math.atan2(weakest.y - t.y, weakest.x - t.x);
+                    t.x += Math.cos(angle) * tData.stats.speed * delta;
+                    t.y += Math.sin(angle) * tData.stats.speed * delta;
+                }
+            } else {
+                // Hech kimni davolash shart emas — qo'shin ortidan yurish
+                if (this.troops.length > 1) {
+                    let avgX = 0, avgY = 0, count = 0;
+                    for (const a of this.troops) {
+                        if (a.id !== t.id && a.hp > 0) {
+                            avgX += a.x; avgY += a.y; count++;
+                        }
+                    }
+                    if (count > 0) {
+                        avgX /= count; avgY /= count;
+                        const dist = Helpers.distance(t.x, t.y, avgX, avgY);
+                        if (dist > 2) {
+                            t.state = 'moving';
+                            const angle = Math.atan2(avgY - t.y, avgX - t.x);
+                            t.x += Math.cos(angle) * tData.stats.speed * delta;
+                            t.y += Math.sin(angle) * tData.stats.speed * delta;
+                        }
+                    }
+                }
             }
         }
 

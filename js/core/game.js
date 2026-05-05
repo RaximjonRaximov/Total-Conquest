@@ -165,8 +165,6 @@ const Game = {
     },
     // Barcha ma'lumotlarni o'chirib, o'yinni qaytadan boshlash
     fullReset() {
-        if (!confirm("O'yin noldan boshlanadi. BARCHA ma'lumotlaringiz o'chadi!\n\nIshonchingiz komilmi?")) return;
-        
         SaveSystem.stopAutoSave();
         
         // Hujum rejimida bo'lsa, avval uyga qaytish
@@ -174,12 +172,23 @@ const Game = {
             BattleManager.returnHome();
         }
         
-        // Joriy saqlash faylini o'chirish
-        SaveSystem.deleteSave();
-        
-        // Database dan ham o'chirish
-        if (typeof DatabaseSystem !== 'undefined') {
-            DatabaseSystem.logout(true);
+        // BARCHA o'yinga tegishli localStorage kalitlarini o'chirish
+        const keysToRemove = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('totalConquest')) {
+                keysToRemove.push(key);
+            }
+        }
+        // tc_ prefixli kalitlar ham
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('tc_')) {
+                keysToRemove.push(key);
+            }
+        }
+        for (const key of keysToRemove) {
+            localStorage.removeItem(key);
         }
         
         // Sahifani qaytadan yuklash

@@ -91,6 +91,23 @@ const BattleRenderer = {
             ctx.fillStyle = hpPerc > 0.5 ? '#4caf50' : hpPerc > 0.2 ? '#ff9800' : '#f44336';
             ctx.fillRect(screen.x - 8*z, screen.y - 18*z, 16*z * hpPerc, 3*z);
         }
+
+        // Shifobaxsh effekti - yashil aura
+        if (data.stats.type === 'healer' && t.state === 'attacking') {
+            const pulse = (Math.sin(Date.now() * 0.008) + 1) / 2;
+            ctx.beginPath();
+            ctx.arc(screen.x, screen.y - 5*z, (12 + pulse * 8) * z, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(76, 175, 80, ${0.1 + pulse * 0.15})`;
+            ctx.fill();
+            ctx.strokeStyle = `rgba(76, 175, 80, ${0.3 + pulse * 0.3})`;
+            ctx.lineWidth = 1.5 * z;
+            ctx.stroke();
+
+            // "+" belgisi
+            ctx.fillStyle = '#4caf50';
+            ctx.font = `bold ${10*z}px sans-serif`;
+            ctx.fillText('+', screen.x, screen.y - 22*z + Math.sin(Date.now() * 0.01) * 3 * z);
+        }
     },
 
     _drawProjectile(ctx, p) {

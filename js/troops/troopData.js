@@ -206,6 +206,46 @@ const TROOP_DATA = {
             splashDamage: true
         },
         description: 'Juda kuchli. Atrofdagilarga splash zarar beradi.'
+    },
+
+    // ===== QOʻLLAB-QUVVATLASH =====
+    healer: {
+        name: 'Shifobaxsh',
+        icon: '💚',
+        category: 'maxsus',
+        tier: 3,
+        unlockBarracks: 4,
+        cost: { food: 600, gold: 400 },
+        time: 90,
+        stats: {
+            hp: 80,
+            damage: 0,
+            healRate: 15, // har sekundda qancha HP tiklaydi
+            speed: 0.9,
+            range: 4,
+            type: 'healer'
+        },
+        description: 'Askarlaringizni davolaydi. Binolarga hujum qilmaydi.'
+    },
+
+    fire_thrower: {
+        name: 'Olov otuvchi',
+        icon: '🔥',
+        category: 'maxsus',
+        tier: 4,
+        unlockBarracks: 5,
+        cost: { food: 800, gold: 600 },
+        time: 150,
+        stats: {
+            hp: 300,
+            damage: 40,
+            speed: 0.7,
+            range: 3,
+            type: 'ranged',
+            splashDamage: true,
+            splashRadius: 2
+        },
+        description: 'Olov bilan hujum qiladi. Keng maydon zarari bor.'
     }
 };
 

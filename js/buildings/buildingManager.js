@@ -277,9 +277,7 @@ const BuildingManager = {
         const totalDiamonds = missingDiamonds + timerDiamonds;
 
         if (Resources.diamond >= totalDiamonds) {
-            const ans = confirm(`Tezkor upgrade uchun jami ${totalDiamonds} olmos kerak. Rozimisiz?`);
-            if (!ans) return false;
-            
+            // Resurslarni to'lash
             Resources.spendMissingWithDiamonds(levelData.cost, missingDiamonds);
             Resources.spend('diamond', timerDiamonds);
             
@@ -294,7 +292,8 @@ const BuildingManager = {
                 const thEl = document.getElementById('th-display');
                 if (thEl) thEl.textContent = 'Town Hall: Lvl ' + b.level;
             }
-            Toast.show(`${bd.icon} ${bd.name} yangilandi!`, 'success');
+            Toast.show(`💎 ${bd.icon} ${bd.name} darhol yangilandi! (-${totalDiamonds} olmos)`, 'success');
+            AudioManager.playClick();
             return true;
         } else {
             Toast.show("Olmos yetarli emas!", "error");
