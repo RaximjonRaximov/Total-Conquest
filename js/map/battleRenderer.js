@@ -2,9 +2,25 @@
 // BATTLE RENDERER - Askarlar va O'qlarni chizish
 // ============================================
 
+// ─── Particle Object Pool — new {} allocation yo'q ────────────────────────────
+const _PARTICLE_POOL_SIZE = 600;
+const _particlePool = [];
+for (let _i = 0; _i < _PARTICLE_POOL_SIZE; _i++) {
+    _particlePool.push({ x:0,y:0,vx:0,vy:0,life:0,decay:0,color:'#fff',size:2,active:false });
+}
+
+function _acquireParticle() {
+    for (let i = 0; i < _particlePool.length; i++) {
+        if (!_particlePool[i].active) return _particlePool[i];
+    }
+    // Pool to'la bo'lsa, yangi ob'ekt (xavfsiz fallback)
+    return { x:0,y:0,vx:0,vy:0,life:0,decay:0,color:'#fff',size:2,active:false };
+}
+// ──────────────────────────────────────────────────────────────────────────────
+
 const BattleRenderer = {
     imageCache: {},
-    particles: [],
+    particles: [],          // Faqat active particlelar saqlanadi
     shakeIntensity: 0,
     shakeDuration: 0,
 
@@ -26,15 +42,16 @@ const BattleRenderer = {
         for (let i = 0; i < count; i++) {
             const angle = Math.random() * Math.PI * 2;
             const speed = 1 + Math.random() * 3;
-            this.particles.push({
-                x, y,
-                vx: Math.cos(angle) * speed,
-                vy: Math.sin(angle) * speed,
-                life: 1.0,
-                decay: 0.02 + Math.random() * 0.03,
-                color: color,
-                size: 2 + Math.random() * 4
-            });
+            const p = _acquireParticle();
+            p.x = x;   p.y = y;
+            p.vx = Math.cos(angle) * speed;
+            p.vy = Math.sin(angle) * speed;
+            p.life  = 1.0;
+            p.decay = 0.02 + Math.random() * 0.03;
+            p.color = color;
+            p.size  = 2 + Math.random() * 4;
+            p.active = true;
+            this.particles.push(p);
         }
     },
 
@@ -54,10 +71,20 @@ const BattleRenderer = {
         // Qizil zonani chizish (Deploy mumkin bo'lmagan joylar)
         this._renderRedZone(ctx);
 
-        // Askarlarni chizish
-        const sortedTroops = [...BattleManager.troops].sort((a, b) => a.y - b.y);
+        // Askarlarni chizish (yer askarlari avval, uchuvchilar keyin)
+        const sortedTroops = [...BattleManager.troops].sort((a, b) => {
+            const aFlying = TROOP_DATA[a.type]?.flying || false;
+            const bFlying = TROOP_DATA[b.type]?.flying || false;
+            if (aFlying !== bFlying) return aFlying ? 1 : -1;
+            return a.y - b.y;
+        });
         for (const t of sortedTroops) {
             this._drawTroop(ctx, t);
+        }
+
+        // Qo'riqchi askarlarni chizish
+        for (const g of BattleManager.guardTroops) {
+            this._drawGuard(ctx, g);
         }
 
         // Snaryadlarni chizish
@@ -75,28 +102,32 @@ const BattleRenderer = {
     },
 
     _drawParticles(ctx) {
+        const z = Camera.zoom;
+        ctx.save();
         for (let i = this.particles.length - 1; i >= 0; i--) {
             const p = this.particles[i];
-            p.x += p.vx;
-            p.y += p.vy;
-            p.vy += 0.1; // gravitatsiya
+            p.x  += p.vx;
+            p.y  += p.vy;
+            p.vy += 0.1;
             p.life -= p.decay;
 
             if (p.life <= 0) {
+                p.active = false;           // Poolga qaytarish
                 this.particles.splice(i, 1);
                 continue;
             }
 
             const iso = Camera.toIso(p.x, p.y);
-            const s = Camera.worldToScreen(iso.x, iso.y);
-            
+            const s   = Camera.worldToScreen(iso.x, iso.y);
+
             ctx.globalAlpha = p.life;
-            ctx.fillStyle = p.color;
+            ctx.fillStyle   = p.color;
             ctx.beginPath();
-            ctx.arc(s.x, s.y, p.size * Camera.zoom, 0, Math.PI * 2);
+            ctx.arc(s.x, s.y, p.size * z, 0, Math.PI * 2);
             ctx.fill();
         }
         ctx.globalAlpha = 1;
+        ctx.restore();
     },
 
     _renderRedZone(ctx) {
@@ -154,21 +185,28 @@ const BattleRenderer = {
     },
 
     _drawTroop(ctx, t) {
-        const iso = Camera.toIso(t.x, t.y);
-        const screen = Camera.worldToScreen(iso.x, iso.y);
-        const z = Camera.zoom;
         const data = TROOP_DATA[t.type];
+        const iso  = Camera.toIso(t.x, t.y);
+        const z    = Camera.zoom;
+
+        // Uchuvchi askarlar yuqoriga ko'tariladi (screen pixels)
+        const flyOffset = data.flying ? (data.flyHeight || 3.0) * 10 * z : 0;
+        const baseScreen = Camera.worldToScreen(iso.x, iso.y);
+        const screen = { x: baseScreen.x, y: baseScreen.y - flyOffset };
 
         if (screen.x < -20 || screen.x > ctx.canvas.width + 20 ||
             screen.y < -20 || screen.y > ctx.canvas.height + 20) return;
 
         // Tana rangi va quroli
-        let bodyColor = '#d32f2f'; // default red
+        let bodyColor = '#d32f2f';
         let weapon = null;
-        if (data.category === 'piyoda') { bodyColor = '#c62828'; weapon = 'sword'; }
-        if (data.category === 'otishma') { bodyColor = '#2e7d32'; weapon = 'bow'; }
+        if (data.category === 'piyoda')   { bodyColor = '#c62828'; weapon = 'sword'; }
+        if (data.category === 'otishma')  { bodyColor = '#2e7d32'; weapon = 'bow'; }
+        if (data.category === 'otliq')    { bodyColor = '#6a1b9a'; weapon = 'sword'; }
+        if (data.category === 'qamal')    { bodyColor = '#4e342e'; weapon = 'ram'; }
+        if (data.category === 'uchuvchi') { bodyColor = '#0277bd'; weapon = 'bow'; }
         if (data.stats.type === 'healer') { bodyColor = '#fbc02d'; weapon = 'staff'; }
-        if (data.stats.type === 'siege') { bodyColor = '#5d4037'; weapon = 'ram'; }
+        if (data.stats.type === 'siege')  { bodyColor = '#5d4037'; weapon = 'ram'; }
 
         let wobble = 0;
         let walkCycle = 0;
@@ -180,11 +218,24 @@ const BattleRenderer = {
             walkCycle = Math.sin(Date.now() * 0.04);
         }
 
-        // Shadow
-        ctx.fillStyle = 'rgba(0,0,0,0.4)';
+        // Shadow — uchuvchilar uchun soya yerda (baseScreen.y)
+        const groundY = baseScreen.y;
+        ctx.fillStyle = data.flying ? 'rgba(0,0,0,0.25)' : 'rgba(0,0,0,0.4)';
         ctx.beginPath();
-        ctx.ellipse(screen.x, screen.y, 6*z, 3*z, 0, 0, Math.PI * 2);
+        ctx.ellipse(screen.x, groundY, data.flying ? 8*z : 6*z, data.flying ? 3*z : 3*z, 0, 0, Math.PI * 2);
         ctx.fill();
+
+        // Uchuvchi — vertikal chiziq (balandlik ko'rsatgich)
+        if (data.flying) {
+            ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+            ctx.lineWidth = 1 * z;
+            ctx.setLineDash([2*z, 2*z]);
+            ctx.beginPath();
+            ctx.moveTo(screen.x, groundY - 3*z);
+            ctx.lineTo(screen.x, screen.y + 14*z);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
 
         const by = screen.y - 4*z + wobble;
 
@@ -278,12 +329,84 @@ const BattleRenderer = {
             ctx.fillStyle = `rgba(76, 175, 80, ${0.1 + pulse * 0.1})`;
             ctx.fill();
         }
+
+        // Burn effekti — yonayotgan askar uchun to'q sariq/to'q qizil aura
+        if (t.burning) {
+            const bp = (Math.sin(Date.now() * 0.02) + 1) / 2;
+            ctx.beginPath();
+            ctx.arc(screen.x, screen.y - 6*z, (6 + bp * 4) * z, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(255, 100, 0, ${0.15 + bp * 0.2})`;
+            ctx.fill();
+            ctx.strokeStyle = `rgba(255, 50, 0, ${0.5 + bp * 0.3})`;
+            ctx.lineWidth = 1.5 * z;
+            ctx.stroke();
+        }
+
+        // Uchuvchi — ko'k glow (qo'shimcha ko'rinadigan)
+        if (data.flying) {
+            const fp = (Math.sin(Date.now() * 0.006) + 1) / 2;
+            ctx.beginPath();
+            ctx.arc(screen.x, screen.y - 8*z, (5 + fp * 3) * z, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(100, 180, 255, ${0.08 + fp * 0.08})`;
+            ctx.fill();
+        }
+    },
+
+    _drawGuard(ctx, g) {
+        const iso    = Camera.toIso(g.x, g.y);
+        const screen = Camera.worldToScreen(iso.x, iso.y);
+        const z      = Camera.zoom;
+
+        if (screen.x < -20 || screen.x > ctx.canvas.width + 20 ||
+            screen.y < -20 || screen.y > ctx.canvas.height + 20) return;
+
+        // Shadow
+        ctx.fillStyle = 'rgba(0,0,0,0.35)';
+        ctx.beginPath();
+        ctx.ellipse(screen.x, screen.y, 5*z, 2.5*z, 0, 0, Math.PI*2);
+        ctx.fill();
+
+        const by = screen.y - 4*z;
+
+        // Tana (qoramtir qo'riqchi rangi)
+        ctx.fillStyle = '#37474f';
+        ctx.beginPath();
+        ctx.roundRect(screen.x - 4*z, by - 12*z, 8*z, 10*z, 3*z);
+        ctx.fill();
+
+        // Bosh
+        ctx.fillStyle = '#ffcc80';
+        ctx.beginPath();
+        ctx.arc(screen.x, by - 14*z, 3.5*z, 0, Math.PI*2);
+        ctx.fill();
+
+        // Dubulg'a
+        ctx.fillStyle = '#546e7a';
+        ctx.beginPath();
+        ctx.arc(screen.x, by - 15*z, 3.8*z, Math.PI, Math.PI*2);
+        ctx.fill();
+
+        // Stun effekti
+        if (g.stunned) {
+            ctx.beginPath();
+            ctx.arc(screen.x, screen.y - 20*z, 5*z, 0, Math.PI*2);
+            ctx.fillStyle = 'rgba(255, 235, 59, 0.6)';
+            ctx.fill();
+        }
+
+        // HP bar
+        const hpPerc = g.hp / g.maxHp;
+        ctx.fillStyle = 'rgba(0,0,0,0.8)';
+        ctx.fillRect(screen.x - 7*z, screen.y - 23*z, 14*z, 2.5*z);
+        ctx.fillStyle = hpPerc > 0.5 ? '#4caf50' : '#f44336';
+        ctx.fillRect(screen.x - 7*z, screen.y - 23*z, 14*z * hpPerc, 2.5*z);
     },
 
     _drawProjectile(ctx, p) {
         let tx, ty;
-        if (p.type === 'defense') {
-            const tr = BattleManager.troops.find(t => t.id === p.targetId);
+        const isDefenseShot = (p.type === 'defense' || p.type === 'defense_splash');
+        if (isDefenseShot) {
+            const tr = BattleManager._troopsById.get(p.targetId);
             if (tr) { tx = tr.x; ty = tr.y; }
         } else {
             const b = BuildingManager.buildings[p.targetId];
@@ -299,37 +422,42 @@ const BattleRenderer = {
             const currentDist = Helpers.distance(p.startX, p.startY, p.x, p.y);
             let progress = currentDist / (totalDist || 1);
             if (progress > 1) progress = 1;
-            
-            // Parabola balandligi
-            const maxH = Math.min(totalDist * 15, 120) * Camera.zoom; 
+            const maxH = Math.min(totalDist * 15, 120) * Camera.zoom;
             flightHeight = 4 * maxH * progress * (1 - progress);
         } else {
             flightHeight = 10 * Camera.zoom;
         }
 
         const iso = Camera.toIso(p.x, p.y);
-        const screen = Camera.worldToScreen(iso.x, iso.y - flightHeight / Camera.zoom); // Z-axis balandlik
+        const screen = Camera.worldToScreen(iso.x, iso.y - flightHeight / Camera.zoom);
         const z = Camera.zoom;
 
-        const isArrow = p.type === 'defense'; // Minoralar o'q otadi (arrow)
+        const isArrow = isDefenseShot; // Minoralar o'q otadi
         
         if (isArrow) {
-            ctx.strokeStyle = '#fff';
+            ctx.strokeStyle = p.fire ? '#ff6600' : '#fff';
             ctx.lineWidth = 1.5 * z;
             ctx.beginPath();
             const angle = Math.atan2(ty - p.startY, tx - p.startX);
-            // O'qning uchi pastga (parabolaga mos) qarab qiyalashadi
-            const pitch = (0.5 - (flightHeight / (Camera.zoom * 60))) * Math.PI; 
+            const pitch = (0.5 - (flightHeight / (Camera.zoom * 60))) * Math.PI;
             ctx.moveTo(screen.x, screen.y);
             ctx.lineTo(screen.x - Math.cos(angle)*4*z, screen.y - Math.sin(angle)*4*z + pitch);
             ctx.stroke();
+        } else if (p.type === 'troop_splash') {
+            // Onager boulder — katta tosh
+            ctx.fillStyle = '#795548';
+            ctx.beginPath();
+            ctx.arc(screen.x, screen.y, 4 * z, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#5d4037';
+            ctx.lineWidth = 1 * z;
+            ctx.stroke();
         } else {
-            // Askar snaryadlari (masalan otishma)
+            // Askar snaryadlari (otishma, Harpy)
             ctx.fillStyle = '#ffb300';
             ctx.beginPath();
             ctx.arc(screen.x, screen.y, 2.5 * z, 0, Math.PI * 2);
             ctx.fill();
-            // Dum
             ctx.globalAlpha = 0.4;
             ctx.beginPath();
             ctx.arc(screen.x - 2*z, screen.y + 2*z, 1.5 * z, 0, Math.PI * 2);

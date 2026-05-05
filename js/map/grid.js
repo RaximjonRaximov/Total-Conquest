@@ -8,44 +8,50 @@ const Grid = {
     TILE_H: 32,
     UNBUILDABLE_BORDER: 4, // 4 katak chekkasi
 
-    // Xarita ma'lumotlari (0 = bo'sh o'tloq)
+    // Xarita ma'lumotlari
     tiles: [],
+    // Tile ranglari keshi — init()da bir marta hisoblanadi, har frameda emas
+    _colorCache: [],
 
     init() {
         this.tiles = [];
+        this._colorCache = [];
         for (let y = 0; y < this.SIZE; y++) {
             this.tiles[y] = [];
+            this._colorCache[y] = [];
             for (let x = 0; x < this.SIZE; x++) {
-                // Chegara kataklarini belgilash (type = 1 yoki dark green area)
-                const isBorder = x < this.UNBUILDABLE_BORDER || x >= this.SIZE - this.UNBUILDABLE_BORDER || 
+                const isBorder = x < this.UNBUILDABLE_BORDER || x >= this.SIZE - this.UNBUILDABLE_BORDER ||
                                  y < this.UNBUILDABLE_BORDER || y >= this.SIZE - this.UNBUILDABLE_BORDER;
-                
                 this.tiles[y][x] = { type: isBorder ? 1 : 0, buildingId: null };
+                this._colorCache[y][x] = this._computeTileColor(x, y);
             }
         }
     },
 
-    // Tile rang (tabiiy yashil variatsia)
+    // Keshdan rangni qaytarish — O(1), har frame Math.sin yo'q
     getTileColor(x, y) {
-        // To'q yashil chegara
-        if (x < this.UNBUILDABLE_BORDER || x >= this.SIZE - this.UNBUILDABLE_BORDER || 
+        return this._colorCache[y][x];
+    },
+
+    // Init vaqtida bir marta chaqiriladi
+    _computeTileColor(x, y) {
+        if (x < this.UNBUILDABLE_BORDER || x >= this.SIZE - this.UNBUILDABLE_BORDER ||
             y < this.UNBUILDABLE_BORDER || y >= this.SIZE - this.UNBUILDABLE_BORDER) {
             return {
-                top: `hsl(120, 40%, 25%)`,
-                left: `hsl(120, 40%, 20%)`,
-                right: `hsl(120, 40%, 15%)`
+                top:   'hsl(120,40%,25%)',
+                left:  'hsl(120,40%,20%)',
+                right: 'hsl(120,40%,15%)'
             };
         }
-
         const seed = Math.sin(x * 127.1 + y * 311.7) * 43758.5453;
         const v = seed - Math.floor(seed);
-        const hue = 76 + v * 12;
-        const sat = 55 + v * 15;
-        const light = 38 + v * 8;
+        const hue   = 76  + v * 12;
+        const sat   = 55  + v * 15;
+        const light = 38  + v * 8;
         return {
-            top: `hsl(${hue}, ${sat}%, ${light}%)`,
-            left: `hsl(${hue}, ${sat}%, ${light - 8}%)`,
-            right: `hsl(${hue}, ${sat}%, ${light - 14}%)`
+            top:   `hsl(${hue|0},${sat|0}%,${light|0}%)`,
+            left:  `hsl(${hue|0},${sat|0}%,${(light-8)|0}%)`,
+            right: `hsl(${hue|0},${sat|0}%,${(light-14)|0}%)`
         };
     },
 

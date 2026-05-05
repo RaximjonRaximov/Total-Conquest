@@ -238,6 +238,7 @@ const BUILDING_DATA = {
         description: 'O\'z askarlaring o\'tadi, dushmanga to\'siq.'
     },
 
+    // ── KAMONCHI MINORASI — ground troops ──────────────────────────────────────
     archerTower: {
         name: 'Kamonchi Minorasi',
         icon: '🏹',
@@ -246,16 +247,20 @@ const BUILDING_DATA = {
         maxCount: 6,
         minimapColor: '#ff5722',
         thRequired: 3,
+        targetType: 'ground',           // Faqat yerda yuruvchi askarlarni uradi
+        attackType: 'single',
+        attackSpeed: 1200,
         levels: {
-            1: { cost: { gold: 1000 }, time: 60, hp: 300, damage: 10, range: 5 },
-            2: { cost: { gold: 4000 }, time: 300, hp: 450, damage: 18, range: 5 },
-            3: { cost: { gold: 15000 }, time: 1800, hp: 650, damage: 30, range: 6 },
-            4: { cost: { gold: 50000 }, time: 7200, hp: 900, damage: 48, range: 6 },
-            5: { cost: { gold: 150000 }, time: 28800, hp: 1200, damage: 70, range: 7 }
+            1: { cost: { gold: 1000 },   time: 60,    hp: 300,  damage: 10, range: 5 },
+            2: { cost: { gold: 4000 },   time: 300,   hp: 450,  damage: 18, range: 5 },
+            3: { cost: { gold: 15000 },  time: 1800,  hp: 650,  damage: 30, range: 6 },
+            4: { cost: { gold: 50000 },  time: 7200,  hp: 900,  damage: 48, range: 6 },
+            5: { cost: { gold: 150000 }, time: 28800, hp: 1200, damage: 70, range: 7 },
         },
-        description: 'Dushmanga o\'q otadi.'
+        description: '🏹 Yerda yuruvchi askarlarga o\'q otadi. Uchuvchilarga ta\'sir qilmaydi.',
     },
 
+    // ── SCORPIO — piercing bolt, ground only ───────────────────────────────────
     scorpio: {
         name: 'Scorpio',
         icon: '🦂',
@@ -264,31 +269,40 @@ const BUILDING_DATA = {
         maxCount: 4,
         minimapColor: '#ff9800',
         thRequired: 4,
+        targetType: 'ground',
+        attackType: 'piercing',         // O'qi bir nechta askarni teshib o'tadi
+        attackSpeed: 2000,
         levels: {
-            1: { cost: { gold: 5000 }, time: 300, hp: 400, damage: 25, range: 6 },
-            2: { cost: { gold: 20000 }, time: 1800, hp: 600, damage: 45, range: 6 },
-            3: { cost: { gold: 80000 }, time: 7200, hp: 850, damage: 70, range: 7 },
-            4: { cost: { gold: 300000 }, time: 28800, hp: 1100, damage: 100, range: 7 }
+            1: { cost: { gold: 5000 },   time: 300,   hp: 400,  damage: 35, range: 7 },
+            2: { cost: { gold: 20000 },  time: 1800,  hp: 600,  damage: 60, range: 7 },
+            3: { cost: { gold: 80000 },  time: 7200,  hp: 850,  damage: 90, range: 8 },
+            4: { cost: { gold: 300000 }, time: 28800, hp: 1100, damage: 130, range: 8 },
         },
-        description: 'Kuchli mudofaa qurilmasi.'
+        description: '🦂 Teshib o\'tuvchi bolt. Bir qatorda turgan askarlarning hammasiga zarar.',
     },
 
+    // ── TORMENTA — splash AoE, ground only ─────────────────────────────────────
     tormenta: {
         name: 'Tormenta',
-        icon: '💨',
+        icon: '🌀',
         category: 'mudofaa',
         size: [2, 2],
         maxCount: 2,
         minimapColor: '#2196f3',
         thRequired: 6,
+        targetType: 'ground',
+        attackType: 'splash',           // AoE zarar
+        splashRadius: 2.0,
+        attackSpeed: 2500,
         levels: {
-            1: { cost: { gold: 200000 }, time: 14400, hp: 700, damage: 50, range: 8 },
-            2: { cost: { gold: 600000 }, time: 43200, hp: 1000, damage: 85, range: 8 },
-            3: { cost: { gold: 1500000 }, time: 86400, hp: 1400, damage: 130, range: 9 }
+            1: { cost: { gold: 200000 },   time: 14400, hp: 700,  damage: 55, range: 8 },
+            2: { cost: { gold: 600000 },   time: 43200, hp: 1000, damage: 90, range: 8 },
+            3: { cost: { gold: 1500000 },  time: 86400, hp: 1400, damage: 140, range: 9 },
         },
-        description: 'Keng radiusli kuchli mudofaa.'
+        description: '🌀 Katta maydon zarari. Guruh askarlarni yo\'q qiladi. Uchuvchilarga ta\'sir qilmaydi.',
     },
 
+    // ── FLAMING CITADEL — fire damage, splash, ground only ─────────────────────
     flamingCitadel: {
         name: 'Olovli Qal\'a',
         icon: '🔥',
@@ -297,14 +311,42 @@ const BUILDING_DATA = {
         maxCount: 2,
         minimapColor: '#f44336',
         thRequired: 8,
+        targetType: 'ground',
+        attackType: 'fire_splash',      // Olov + splash — dotsni qo'yadi
+        splashRadius: 1.5,
+        burnDamage: 8,                  // Har sekundda qo'shimcha olov zarari
+        burnDuration: 3000,             // 3 sekund yonadi
+        attackSpeed: 2000,
         levels: {
-            1: { cost: { gold: 1000000 }, time: 43200, hp: 1000, damage: 80, range: 7 },
-            2: { cost: { gold: 3000000 }, time: 86400, hp: 1500, damage: 130, range: 8 },
-            3: { cost: { gold: 6000000 }, time: 172800, hp: 2000, damage: 200, range: 9 }
+            1: { cost: { gold: 1000000 },  time: 43200,  hp: 1000, damage: 90,  range: 7 },
+            2: { cost: { gold: 3000000 },  time: 86400,  hp: 1500, damage: 150, range: 8 },
+            3: { cost: { gold: 6000000 },  time: 172800, hp: 2000, damage: 220, range: 9 },
         },
-        description: 'Eng kuchli mudofaa qurilmasi. Olov bilan yoqadi.'
+        description: '🔥 Olov zarar + 3 sekund yonish effekti. Eng kuchli mudofaa.',
     },
 
+    // ── CLOUD BUSTER — FAQAT UCHUVCHILARGA qarshi! ──────────────────────────────
+    cloudBuster: {
+        name: 'Cloud Buster',
+        icon: '⚡',
+        category: 'mudofaa',
+        size: [2, 2],
+        maxCount: 2,
+        minimapColor: '#9c27b0',
+        thRequired: 5,
+        targetType: 'air',              // FAQAT uchuvchi askarlarni uradi
+        attackType: 'anti_air',
+        minRange: 1.5,                  // Minimum range (juda yaqindagilarni ura olmaydi)
+        attackSpeed: 1000,              // Tez otadi
+        levels: {
+            1: { cost: { gold: 50000 },   time: 7200,  hp: 500,  damage: 80,  range: 8 },
+            2: { cost: { gold: 150000 },  time: 21600, hp: 750,  damage: 130, range: 9 },
+            3: { cost: { gold: 400000 },  time: 43200, hp: 1050, damage: 200, range: 10 },
+        },
+        description: '⚡ FAQAT uchuvchi askarlarga (Harpy) qarshi! Yer askarlarga ta\'sir qilmaydi. Minimum range bor.',
+    },
+
+    // ── SPIKE TRAP — ground trigger, speculator avoids ─────────────────────────
     spikeTrap: {
         name: 'Nayzali Tuzoq',
         icon: '📌',
@@ -313,14 +355,42 @@ const BUILDING_DATA = {
         maxCount: 10,
         minimapColor: '#757575',
         thRequired: 4,
+        targetType: 'ground',
+        attackType: 'trap',             // Ustidan yurilganda ishga tushadi
+        trapTriggerRadius: 0.8,
+        hidden: true,                   // Jangda ko'rinmaydi (Speculator ularni ko'radi)
         levels: {
-            1: { cost: { gold: 1000 }, time: 30, hp: 50, damage: 50 },
-            2: { cost: { gold: 5000 }, time: 120, hp: 50, damage: 100 },
-            3: { cost: { gold: 20000 }, time: 600, hp: 50, damage: 200 }
+            1: { cost: { gold: 1000 },  time: 30,  hp: 50, damage: 60 },
+            2: { cost: { gold: 5000 },  time: 120, hp: 50, damage: 120 },
+            3: { cost: { gold: 20000 }, time: 600, hp: 50, damage: 250 },
         },
-        description: 'Yashirin tuzoq. Dushman bosib o\'tganda zarba beradi.'
+        description: '📌 Yashirin tuzoq. Askar ustidan o\'tganda portlaydi. Speculator ko\'rib o\'tadi.',
     },
 
+    // ── ALCHEMICAL TRAP — massive explosion, speculator avoids ─────────────────
+    alchemicalTrap: {
+        name: 'Kimyoviy Tuzoq',
+        icon: '🧪',
+        category: 'mudofaa',
+        size: [1, 1],
+        maxCount: 4,
+        minimapColor: '#00bcd4',
+        thRequired: 6,
+        targetType: 'ground',
+        attackType: 'trap',
+        trapTriggerRadius: 1.0,
+        splashRadius: 2.5,              // Katta portlash radiusi
+        hidden: true,
+        oneTimeUse: true,               // Bir marta ishlatiladi
+        levels: {
+            1: { cost: { gold: 50000 },  time: 3600,  hp: 50, damage: 400 },
+            2: { cost: { gold: 150000 }, time: 7200,  hp: 50, damage: 700 },
+            3: { cost: { gold: 400000 }, time: 14400, hp: 50, damage: 1200 },
+        },
+        description: '🧪 Katta kimyoviy portlash. Radius ichidagi hammaga ulkan zarar. Speculator ko\'rib o\'tadi.',
+    },
+
+    // ── MILITIA — spawns guard troops ──────────────────────────────────────────
     militia: {
         name: 'Militsiya',
         icon: '🛡️',
@@ -329,13 +399,16 @@ const BUILDING_DATA = {
         maxCount: 1,
         minimapColor: '#673ab7',
         thRequired: 3,
+        targetType: 'spawn',            // Askar chiqaradi (emas otadi)
+        attackType: 'spawn_troops',
+        attackSpeed: 30000,             // 30 sekundda bir marta yangilaydi
         levels: {
-            1: { cost: { gold: 3000 }, time: 300, hp: 400, capacity: 5 },
+            1: { cost: { gold: 3000 },  time: 300,  hp: 400, capacity: 5  },
             2: { cost: { gold: 15000 }, time: 1800, hp: 600, capacity: 10 },
-            3: { cost: { gold: 60000 }, time: 7200, hp: 850, capacity: 15 }
+            3: { cost: { gold: 60000 }, time: 7200, hp: 850, capacity: 15 },
         },
-        description: 'Dushman kelganda askarlarni avtomatik chiqaradi.'
-    }
+        description: '🛡️ Dushman kelganda qo\'riqchi askarlar chiqaradi. Gladiator buni birinchi nishon oladi.',
+    },
 };
 
 // Kategoriya nomlari

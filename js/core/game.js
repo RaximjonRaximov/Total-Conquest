@@ -8,6 +8,7 @@ const Game = {
     canvas: null,
     ctx: null,
     running: false,
+    lastTimestamp: 0,       // Real delta time uchun
     lastInfoUpdate: 0,
     lastArmyUpdate: 0,
     lastBattleUpdate: 0,
@@ -72,50 +73,39 @@ const Game = {
         });
 
         this.running = true;
-        this.gameLoop();
+        requestAnimationFrame((ts) => this.gameLoop(ts));
     },
 
-    gameLoop() {
+    gameLoop(timestamp = 0) {
         if (!this.running) return;
 
-        // Kamerani yangilash
-        Camera.update();
+        // === REAL DELTA TIME (hardcoded 16ms o'rniga) ===
+        const rawDelta = timestamp - this.lastTimestamp;
+        this.lastTimestamp = timestamp;
+        // 50ms cap (20 FPS minimum) — tab yashirilganda spike bo'lmasligi uchun
+        const delta = Math.min(rawDelta / 1000, 0.05);
 
-        // Timerlarni yangilash
+        Camera.update();
         timerManager.update();
 
         if (this.mode === 'home') {
-            // Resurs ishlab chiqarishni yangilash
             BuildingManager.updateProduction();
         } else if (this.mode === 'attack') {
-            // Jangni yangilash
-            BattleManager.update();
+            BattleManager.update(delta);
         }
 
-        // Xaritani chizish
         MapRenderer.renderMap();
-
-        // To'siqlarni chizish (binolardan oldin)
         ObstacleRenderer.renderAll(this.ctx);
-
-        // Binolarni chizish
         BuildingRenderer.renderAll(this.ctx);
 
         if (this.mode === 'attack') {
-            // Askarlar va snaryadlarni chizish
             BattleRenderer.renderAll(this.ctx);
         }
 
-        // Ghost bino (joylashtirish rejimida)
         BuildMenu.renderGhost(this.ctx);
-
-        // Drag qilinayotgan bino
         BuildingRenderer.drawDragGhost(this.ctx);
-
-        // Minimap
         Minimap.render();
 
-        // Koordinata ko'rsatkichi
         const coordEl = document.getElementById('coord-display');
         const mx = Input.mouse.tileX;
         const my = Input.mouse.tileY;
@@ -125,43 +115,33 @@ const Game = {
             coordEl.textContent = 'Tile: -';
         }
 
-        // Qurish rejimi ko'rsatkichi
         if (BuildMenu.placing) {
-            if (BuildMenu.locked) {
-                coordEl.textContent += ' | ✅ Tasdiqlang yoki ❌ Bekor qiling';
-            } else {
-                coordEl.textContent += ' | 👆 Joyni tanlang...';
-            }
+            coordEl.textContent += BuildMenu.locked
+                ? ' | ✅ Tasdiqlang yoki ❌ Bekor qiling'
+                : ' | 👆 Joyni tanlang...';
         }
-
-        // Drag rejimi ko'rsatkichi
         if (BuildingManager.dragging) {
             coordEl.textContent += ' | 🔄 Ko\'chirish...';
         }
 
         if (this.mode === 'home') {
-            // Info panel yangilash (har 0.5s)
             const now = Date.now();
             if (now - this.lastInfoUpdate > 500) {
                 this.lastInfoUpdate = now;
                 InfoPanel.update();
             }
-
-            // Army panel yangilash (har 1s)
             if (now - this.lastArmyUpdate > 1000) {
                 this.lastArmyUpdate = now;
                 ArmyPanel.update();
                 ResearchPanel.update();
             }
-
-            // Battle panel yangilash (har 1s)
             if (now - this.lastBattleUpdate > 1000) {
                 this.lastBattleUpdate = now;
                 BattlePanel.update();
             }
         }
 
-        requestAnimationFrame(() => this.gameLoop());
+        requestAnimationFrame((ts) => this.gameLoop(ts));
     },
     // Barcha ma'lumotlarni o'chirib, o'yinni qaytadan boshlash
     fullReset() {

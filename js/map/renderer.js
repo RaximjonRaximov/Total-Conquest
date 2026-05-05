@@ -25,6 +25,7 @@ const MapRenderer = {
     resize() {
         this.canvas.width = window.innerWidth;
         this.canvas.height = window.innerHeight;
+        Camera.onResize(); // Canvas keshini yangilash
     },
 
     // Bitta tile chizish
@@ -149,47 +150,74 @@ const MapRenderer = {
         }
     },
 
+    // === FRUSTUM CULLING — faqat ekranda ko'rinadigan tilelarni chizamiz ===
+    // 1936 tile o'rniga ~150-400 tile (zoom ga qarab). ~5-10x tezlashtirish.
+    _getVisibleRange() {
+        const cw = this.canvas.width, ch = this.canvas.height;
+        const z  = Camera.zoom;
+        const hw = Grid.TILE_W / 2;
+        const hh = Grid.TILE_H / 2;
+
+        // Ekran 4 burchagi → iso world → grid koordinata
+        const corners = [[0,0],[cw,0],[0,ch],[cw,ch]];
+        let minGX = Infinity, maxGX = -Infinity;
+        let minGY = Infinity, maxGY = -Infinity;
+
+        for (const [sx, sy] of corners) {
+            const ix = (sx - cw/2) / z + Camera.x;
+            const iy = (sy - ch/2) / z + Camera.y;
+            const u = ix / hw;
+            const v = iy / hh;
+            const gx = (u + v) / 2;
+            const gy = (v - u) / 2;
+            if (gx < minGX) minGX = gx;
+            if (gx > maxGX) maxGX = gx;
+            if (gy < minGY) minGY = gy;
+            if (gy > maxGY) maxGY = gy;
+        }
+
+        const margin = 2;
+        return {
+            x1: Math.max(0, Math.floor(minGX) - margin),
+            x2: Math.min(Grid.SIZE - 1, Math.ceil(maxGX) + margin),
+            y1: Math.max(0, Math.floor(minGY) - margin),
+            y2: Math.min(Grid.SIZE - 1, Math.ceil(maxGY) + margin)
+        };
+    },
+
     // Butun xaritani chizish
     renderMap() {
         const bgImg = this.loadImage('assets/map/bg.png');
-        
+
         if (bgImg) {
-            // Background image scroll va zoom bilan birga harakatlanadi
             const centerIso = Camera.toIso(Grid.SIZE / 2, Grid.SIZE / 2);
             const screen = Camera.worldToScreen(centerIso.x, centerIso.y);
             const z = Camera.zoom;
-            
-            // Rasmni o'yin markaziga joylashtiramiz
             const iw = bgImg.width * z;
             const ih = bgImg.height * z;
-            
-            // Rasmning markazini grid markazi bilan ustma-ust tushiramiz
-            // Eslatma: Foydalanuvchi rasmini tile o'lchamiga moslab (Grid.TILE_W=64) yasagan bo'lishi kerak
             this.ctx.drawImage(bgImg, screen.x - iw/2, screen.y - ih/2, iw, ih);
         } else {
-            // Fonni chizish — quyuqroq ko'k (suv effekti)
             const gradient = this.ctx.createRadialGradient(
                 this.canvas.width / 2, this.canvas.height / 2, 0,
-                this.canvas.width / 2, this.canvas.height / 2, Math.max(this.canvas.width, this.canvas.height) / 1.5
+                this.canvas.width / 2, this.canvas.height / 2,
+                Math.max(this.canvas.width, this.canvas.height) / 1.5
             );
             gradient.addColorStop(0, '#1a2840');
             gradient.addColorStop(0.6, '#122035');
             gradient.addColorStop(1, '#0a1525');
             this.ctx.fillStyle = gradient;
             this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-
-            // Suv animatsiyasi (xarita tashqarisida)
             this._drawWaterEffect();
         }
 
         const mx = Input.mouse.tileX;
         const my = Input.mouse.tileY;
 
-        for (let y = 0; y < Grid.SIZE; y++) {
-            for (let x = 0; x < Grid.SIZE; x++) {
-                const isHover = (x === mx && y === my);
-                // Agar bgImg bo'lsa, drawTile ga "faqat chiziqlar (transparent)" deb belgi beramiz
-                this.drawTile(x, y, isHover, !!bgImg);
+        // Frustum culling — faqat ko'rinadigan tilelar
+        const r = this._getVisibleRange();
+        for (let y = r.y1; y <= r.y2; y++) {
+            for (let x = r.x1; x <= r.x2; x++) {
+                this.drawTile(x, y, x === mx && y === my, !!bgImg);
             }
         }
     },
