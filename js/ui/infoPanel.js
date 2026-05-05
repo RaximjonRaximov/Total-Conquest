@@ -151,6 +151,11 @@ const InfoPanel = {
                 html += `<div class="info-btn" onclick="InfoPanel.collect()">📦 Yig'ish</div>`;
             }
 
+            // Askar tayyorlash (Kazarma uchun)
+            if (b.type === 'barracks') {
+                html += `<div class="info-btn" onclick="InfoPanel.openArmyPanel()" style="background: linear-gradient(to bottom, #d4af37, #b8860b); color: #000; border-color: #ffd700;">⚔️ Askar Tayyorlash</div>`;
+            }
+
             // Upgrade
             const nextLv = bd.levels[b.level + 1];
             if (nextLv) {
@@ -186,6 +191,11 @@ const InfoPanel = {
         }
 
         panel.innerHTML = html;
+    },
+
+    openArmyPanel() {
+        this.hide();
+        ArmyPanel.toggle();
     },
 
     collect() {

@@ -351,31 +351,55 @@ const BattleManager = {
                     // Harakatlanish
                     t.state = 'moving';
                     
-                    // To'g'ri chiziq bo'ylab yurish, lekin yo'lda devor bo'lsa uni urish
-                    const angle = Math.atan2(by - t.y, bx - t.x);
-                    const nx = t.x + Math.cos(angle) * t.speed * delta;
-                    const ny = t.y + Math.sin(angle) * t.speed * delta;
-                    
-            // Oldindagi tile ni tekshirish
-                    const gx = Math.floor(nx);
-                    const gy = Math.floor(ny);
-                    const tile = Grid.tiles[gy] ? Grid.tiles[gy][gx] : null;
-                    
-                    if (tile && tile.buildingId !== null && tile.buildingId !== t.target) {
-                        const obstacle = BuildingManager.buildings[tile.buildingId];
-                        if (obstacle && (obstacle.type === 'wall' || t.type === 'battering_ram')) {
-                            // Devorni urish
-                            t.state = 'attacking';
-                            if (now - t.lastAttack >= t.attackSpeed) {
-                                t.lastAttack = now;
-                                this._shootBuilding(t, obstacle);
-                            }
-                            continue; // To'xtaymiz
-                        }
+                    // A* Pathfinding yo'lini qidirish
+                    if (!t.path || t.path.length === 0 || Math.random() < 0.05) { // 5% ehtimol bilan qayta hisoblash (dinamiklik)
+                        t.path = Pathfinding.findPath(t.x, t.y, bx, by);
                     }
-                    
-                    t.x = nx;
-                    t.y = ny;
+
+                    if (t.path && t.path.length > 0) {
+                        const nextStep = t.path[0];
+                        const stepX = nextStep.x + 0.5; // Katak markaziga qarab
+                        const stepY = nextStep.y + 0.5;
+                        
+                        const angle = Math.atan2(stepY - t.y, stepX - t.x);
+                        const moveDist = t.speed * delta;
+                        const distToStep = Helpers.distance(t.x, t.y, stepX, stepY);
+                        
+                        // Oldindagi tile ni tekshirish (Devorlarga hujum)
+                        const gx = Math.floor(t.x + Math.cos(angle) * moveDist * 2);
+                        const gy = Math.floor(t.y + Math.sin(angle) * moveDist * 2);
+                        const tile = Grid.tiles[gy] ? Grid.tiles[gy][gx] : null;
+                        
+                        let hitWall = false;
+                        if (tile && tile.buildingId !== null && tile.buildingId !== t.target) {
+                            const obstacle = BuildingManager.buildings[tile.buildingId];
+                            if (obstacle && (obstacle.type === 'wall' || t.type === 'battering_ram')) {
+                                // Devorni urish
+                                t.state = 'attacking';
+                                hitWall = true;
+                                if (now - t.lastAttack >= t.attackSpeed) {
+                                    t.lastAttack = now;
+                                    this._shootBuilding(t, obstacle);
+                                }
+                            }
+                        }
+
+                        if (!hitWall) {
+                            if (distToStep <= moveDist) {
+                                t.x = stepX;
+                                t.y = stepY;
+                                t.path.shift(); // Bu qadamga yetdik
+                            } else {
+                                t.x += Math.cos(angle) * moveDist;
+                                t.y += Math.sin(angle) * moveDist;
+                            }
+                        }
+                    } else {
+                        // Fallback: Agar yo'l umuman bo'lmasa, to'g'ri yuradi
+                        const angle = Math.atan2(by - t.y, bx - t.x);
+                        t.x += Math.cos(angle) * t.speed * delta;
+                        t.y += Math.sin(angle) * t.speed * delta;
+                    }
                 }
             } else {
                 t.state = 'idle';
@@ -527,6 +551,7 @@ const BattleManager = {
 
     _spawnProjectile(x, y, targetId, damage, type) {
         this.projectiles.push({
+            startX: x, startY: y,
             x: x, y: y,
             targetId: targetId,
             damage: damage,
@@ -541,8 +566,14 @@ const BattleManager = {
         b.hp -= damage;
         if (b.hp <= 0) {
             AudioManager.playExplosion();
-            // Vayron bo'ldi
+            
+            // Effektlar
+            BattleRenderer.triggerShake(10 * Camera.zoom, 300);
             const bd = BUILDING_DATA[b.type];
+            BattleRenderer.addExplosion(b.x + bd.size[0]/2, b.y + bd.size[1]/2, '#ff5722', 20);
+            BattleRenderer.addExplosion(b.x + bd.size[0]/2, b.y + bd.size[1]/2, '#757575', 10); // Smoke
+
+            // Vayron bo'ldi
             Grid.free(b.x, b.y, bd.size[0], bd.size[1]);
             
             // Loot olish
@@ -620,6 +651,9 @@ const BattleManager = {
             xp = Math.floor(this.battleBaseInfo.xpReward / 4);
             XPSystem.addXP(xp);
         }
+
+        // Professional Result Panelni ko'rsatish
+        BattleResultPanel.show(stars, percent, this.lootGained, trophyChange, xp, victory);
 
         // Logga qo'shish
         BattleSystem.battleLog.unshift({

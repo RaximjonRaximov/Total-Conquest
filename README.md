@@ -18,36 +18,34 @@
 
 | Holat | Vazifa | Tavsif |
 |:---:|---|---|
-| ⬜ | **Oltin (Gold)** | Asosiy qurilish va tadqiqot valyutasi (Villa va Oltin ombori) |
-| ⬜ | **Olma (Food)** | Askarlar tayyorlash uchun (Ferma va Olma ombori) |
-| ⬜ | **Olmos (Tokens)** | Premium valyuta (Qurilish va tayyorlashni tezlashtirish) |
-| ⬜ | **Resurs UI va Animatsiyalar** | Resurs yig'ilganda ekranda uchib boruvchi raqamlar, progress barlar |
+| ✅ | **Oltin, Olma, Olmos** | To'liq iqtisodiy tizim, omborlar va Town Hall sig'imi |
+| ✅ | **Resurs UI va Animatsiyalar** | Resurs yig'ilganda ekranda uchib boruvchi raqamlar, progress barlar, 3D pufakchalar |
 
 ## 🏗️ 3. BINOLAR (Buildings)
 
 | Holat | Vazifa | Tavsif |
 |:---:|---|---|
-| ⬜ | **Sprite'lar va Animatsiya** | Har bir bino uchun Idle, Qurilish, Zarar ko'rish va Vayron bo'lish sprite'lari |
-| ⬜ | **Bino Qurish Tizimi** | Isometrik grid ustida qizil/yashil placement, drag and drop |
-| ⬜ | **Quruvchi (Architect)** | Quruvchi bino yoniga borib bolg'a urish animatsiyasi, timer UI |
-| ⬜ | **Barcha Binolar Bazasi** | City Hall, Villa, Farm, Barracks va mudofaa minoralarining to'liq statistikasi |
+| ✅ | **Sprite'lar va Animatsiya** | Binolar uchun PRO 3D soya (Shadow), gradient yorug'lik va detallar keshlanishi |
+| ✅ | **Bino Qurish Tizimi** | Isometrik grid ustida qizil/yashil placement, drag and drop, offscreen optimizatsiya |
+| ✅ | **Quruvchi (Architect)** | Quruvchi bino yoniga borib bolg'a urish animatsiyasi, timer UI |
+| ✅ | **Barcha Binolar Bazasi** | City Hall, Villa, Farm, Barracks va mudofaa minoralarining to'liq statistikasi |
 
 ## ⚔️ 4. ASKARLAR (Troops & Army)
 
 | Holat | Vazifa | Tavsif |
 |:---:|---|---|
-| ⬜ | **Askar Animatsiyalari** | Yurish (Walk 8 ta yo'nalishda), Hujum (Attack), O'lish (Death) animatsiyalari |
-| ⬜ | **Askar Tayyorlash Tizimi** | Kazarmada navbatga qo'yish (Queue), tayyor bo'lgach Yig'ilish maydoniga chiqishi |
-| ⬜ | **Qo'shin Turlari** | Legioner, Kamonchi, Otliq, Devorbuzar va Shifobaxshning haqiqiy xususiyatlari |
+| ✅ | **Askar Animatsiyalari** | Yurish (Walk cycle), Hujum (Weapon swing) animatsiyalari va 3D modellar |
+| ✅ | **Askar Tayyorlash Tizimi** | Kazarmada navbatga qo'yish (Queue), tayyor bo'lgach Yig'ilish maydoniga chiqishi |
+| ✅ | **Qo'shin Turlari** | Legioner, Kamonchi, Otliq, Devorbuzar va Shifobaxshning haqiqiy xususiyatlari |
 
 ## 🏹 5. JANG VA AI (Battle System)
 
 | Holat | Vazifa | Tavsif |
 |:---:|---|---|
-| ⬜ | **Haqiqiy Pathfinding (A*)** | Devorlarni aylanib o'tish yoki yo'l yopiq bo'lsa devorni buzish A* algoritmi |
-| ⬜ | **Jang Maydoni (Deploy)** | Qizil zonadan tashqariga askarlarni tashlash va vizual effektlar |
-| ⬜ | **Mudofaa AI & Snaryadlar** | Minoralarning dushmanga o'q/tosh otishi (Parabola trayektoriyasi) va Splash zarar |
-| ⬜ | **Jang Natijasi** | Ekran titrashi (Screen shake), portlashlar va 3 yulduzli g'alaba oynasi |
+| ✅ | **Haqiqiy Pathfinding (A*)** | Devorlarni aylanib o'tish yoki yo'l yopiq bo'lsa devorni buzish A* algoritmi |
+| ✅ | **Jang Maydoni (Deploy)** | Qizil zonadan tashqariga askarlarni tashlash va vizual pulsatsiya effektlari |
+| ✅ | **Mudofaa AI & Snaryadlar** | Minoralarning dushmanga o'q otishi (Parabola trayektoriyasi) va dinamik snaryadlar |
+| ✅ | **Jang Natijasi** | Ekran titrashi (Screen shake), portlashlar va 3 yulduzli professional g'alaba oynasi |
 
 ## 👥 6. KLAN VA MULTIPLAYER (Social & Multiplayer)
 
