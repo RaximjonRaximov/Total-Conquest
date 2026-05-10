@@ -12,6 +12,11 @@ const Camera = {
     targetZoom: 1,
     smoothing: 0.12,
 
+    // Inertia (Pan Momentum)
+    _vx: 0,            // Horizontal velocity (world units/frame)
+    _vy: 0,            // Vertical velocity
+    _friction: 0.88,   // Velocity decay per frame (0.88 = 88% retained each frame)
+
     // Canvas keshi — har frame getElementById chaqirmaslik uchun
     _canvas: null,
     _cw: 0,
@@ -73,13 +78,114 @@ const Camera = {
     pan(dx, dy) {
         this.x -= dx / this.zoom;
         this.y -= dy / this.zoom;
+        this._clamp();
     },
 
-    // Smooth zoom yangilash
+    // Inertia boshlash (drag tugaganda chaqiriladi)
+    startInertia(vx, vy) {
+        this._vx = vx / this.zoom;
+        this._vy = vy / this.zoom;
+    },
+
+    // Inertia to'xtatish (boshqa drag boshlanganda)
+    stopInertia() {
+        this._vx = 0;
+        this._vy = 0;
+    },
+
+    // Kamera chegaralarini qo'llash
+    _clamp() {
+        // Izometrik xaritaning world-space chegaralari:
+        // Eng chap nuqta: (0, SIZE) grid → x = -(SIZE/2)*TILE_W
+        // Eng o'ng nuqta: (SIZE, 0) grid → x = +(SIZE/2)*TILE_W
+        // Yuqori nuqta:   (0, 0)   grid → y = 0
+        // Pastki nuqta:   (SIZE,SIZE) grid → y = SIZE*TILE_H
+        const half = Grid.SIZE / 2;
+        const mapHalfW = half * Grid.TILE_W;
+        const mapH     = Grid.SIZE * Grid.TILE_H;
+        const margin   = Grid.TILE_W; // 1 tile margin
+        this.x = Helpers.clamp(this.x, -mapHalfW - margin, mapHalfW + margin);
+        this.y = Helpers.clamp(this.y, -margin,             mapH + margin);
+    },
+
+    // ── Smooth tween animatsiyasi ─────────────────────────────────────────
+    _tween: null,  // { startX, startY, endX, endY, startZ, endZ, startMs, dur, onDone }
+
+    // Kamera va zoom ni bir vaqtda silkimasdan animatsiyalash (CoC uslubi)
+    // gx, gy — grid koordinatasi; zoomTarget — yaqinlash darajasi; dur — ms
+    tweenTo(gx, gy, zoomTarget, dur = 700, onDone = null) {
+        const iso = this.toIso(gx, gy);
+        this._tween = {
+            startX:  this.x,
+            startY:  this.y,
+            endX:    iso.x,
+            endY:    iso.y,
+            startZ:  this.zoom,
+            endZ:    Helpers.clamp(zoomTarget, this.minZoom, this.maxZoom),
+            startMs: performance.now(),
+            dur,
+            onDone,
+        };
+        this.stopInertia();
+    },
+
+    // Faqat kamera pozitsiyasini tween (zoom o'zgarishsiz)
+    panTo(gx, gy, dur = 500, onDone = null) {
+        this.tweenTo(gx, gy, this.zoom, dur, onDone);
+    },
+
+    // Tween ni bekor qilish
+    cancelTween() {
+        if (this._tween?.onDone) this._tween.onDone();
+        this._tween = null;
+    },
+
+    // Ease funksiyasi: ease-in-out cubic
+    _easeInOut(t) {
+        return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    },
+
+    // Smooth zoom + inertia yangilash
     update() {
+        // ── Tween animatsiya ──────────────────────────────────────────────────
+        if (this._tween) {
+            const tw = this._tween;
+            const elapsed = performance.now() - tw.startMs;
+            const rawT    = Math.min(1, elapsed / tw.dur);
+            const t       = this._easeInOut(rawT);
+
+            this.x    = tw.startX + (tw.endX - tw.startX) * t;
+            this.y    = tw.startY + (tw.endY - tw.startY) * t;
+            this.zoom = tw.startZ + (tw.endZ - tw.startZ) * t;
+            this.targetZoom = this.zoom; // smooth zoom bilan conflict olmasin
+
+            if (rawT >= 1) {
+                this.x    = tw.endX;
+                this.y    = tw.endY;
+                this.zoom = tw.endZ;
+                this.targetZoom = tw.endZ;
+                const cb  = tw.onDone;
+                this._tween = null;
+                if (cb) cb();
+            }
+            this._clamp();
+            return; // Tween paytida inertia o'chirilgan
+        }
+
         this.zoom += (this.targetZoom - this.zoom) * this.smoothing;
         if (Math.abs(this.targetZoom - this.zoom) < 0.001) {
             this.zoom = this.targetZoom;
+        }
+        // Inertia harakat
+        if (Math.abs(this._vx) > 0.05 || Math.abs(this._vy) > 0.05) {
+            this.x += this._vx;
+            this.y += this._vy;
+            this._vx *= this._friction;
+            this._vy *= this._friction;
+            this._clamp();
+        } else {
+            this._vx = 0;
+            this._vy = 0;
         }
     }
 };

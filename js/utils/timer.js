@@ -45,6 +45,20 @@ class TimerManager {
         return Math.max(0, (timer.duration - elapsed) / 1000);
     }
 
+    // Qolgan vaqtni o'rnatish (potion uchun — soniyada)
+    setRemaining(id, seconds) {
+        const timer = this.timers.find(t => t.id === id);
+        if (!timer) return;
+        // startTime ni hozirdan seconds*1000 ms oldin qilib qo'y
+        timer.startTime = Date.now() - (timer.duration - seconds * 1000);
+        if (timer.startTime > Date.now()) timer.startTime = Date.now() - 1;
+    }
+
+    // Timerni darhol bajarish (book of building/research uchun)
+    fireNow(id) {
+        this.instant(id);
+    }
+
     // Progress (0-1)
     getProgress(id) {
         const timer = this.timers.find(t => t.id === id);

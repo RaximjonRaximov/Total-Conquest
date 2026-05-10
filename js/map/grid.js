@@ -4,8 +4,8 @@
 
 const Grid = {
     SIZE: 44,
-    TILE_W: 64,
-    TILE_H: 32,
+    TILE_W: 128,
+    TILE_H: 64,
     UNBUILDABLE_BORDER: 4, // 4 katak chekkasi
 
     // Xarita ma'lumotlari

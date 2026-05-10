@@ -48,6 +48,16 @@ class _MinHeap {
     }
 }
 
+// ─── Pre-allocated buffers — har call da new allocation yo'q (GC pressure = 0) ──
+// Grid.SIZE = 44 → 44*44 = 1936 cells
+const _PF_N    = 44 * 44;
+const _gScore  = new Float32Array(_PF_N);
+const _fScore  = new Float32Array(_PF_N);
+const _cFromX  = new Int16Array(_PF_N);
+const _cFromY  = new Int16Array(_PF_N);
+const _inOpen  = new Uint8Array(_PF_N);
+const _PF_INF  = 1e9;
+
 // ─── A* Pathfinding ───────────────────────────────────────────────────────────
 const Pathfinding = {
     // Diagonal + cardinal yo'nalishlari
@@ -56,27 +66,41 @@ const Pathfinding = {
         [1,1,1.414],[1,-1,1.414],[-1,1,1.414],[-1,-1,1.414]
     ],
 
+    // Har frame da nechta A* hisoblash ruxsat etiladi (spike oldini olish)
+    _pathBudget: 8,
+    _pathThisFrame: 0,
+    resetFrameBudget() { this._pathThisFrame = 0; },
+
+    // Jump spell aktiv hududdagi askar uchun devor weightini o'zgartirish
+    _jumpZoneActive: false,
+    setJumpContext(active) { this._jumpZoneActive = active; },
+
     findPath(startX, startY, endX, endY) {
+        // Frame budget tekshiruvi — bir frameda ortiqcha A* hisoblashni cheklash
+        if (this._pathThisFrame >= this._pathBudget) return null; // null = "keyingi frameda"
+        this._pathThisFrame++;
+
         const sx = startX | 0, sy = startY | 0;
         const ex = endX   | 0, ey = endY   | 0;
         if (sx === ex && sy === ey) return [];
 
         const S = Grid.SIZE;
-        // Flat arrays — objects create bo'lmaydi, index = y*SIZE+x
-        const gScore = new Float32Array(S * S).fill(Infinity);
-        const fScore = new Float32Array(S * S).fill(Infinity);
-        const cameFromX = new Int16Array(S * S).fill(-1);
-        const cameFromY = new Int16Array(S * S).fill(-1);
-        const inOpen    = new Uint8Array(S * S);
+
+        // Pre-allocated bufferlarni "reset" — fill() allocationdan tezroq
+        _gScore.fill(_PF_INF);
+        _fScore.fill(_PF_INF);
+        _cFromX.fill(-1);
+        _cFromY.fill(-1);
+        _inOpen.fill(0);
 
         const si = sy * S + sx;
         const ei = ey * S + ex;
-        gScore[si] = 0;
-        fScore[si] = this._h(sx, sy, ex, ey);
+        _gScore[si] = 0;
+        _fScore[si] = this._h(sx, sy, ex, ey);
 
         const heap = new _MinHeap();
-        heap.push({ x: sx, y: sy, f: fScore[si] });
-        inOpen[si] = 1;
+        heap.push({ x: sx, y: sy, f: _fScore[si] });
+        _inOpen[si] = 1;
 
         let iter = 0;
         const MAX = 600;
@@ -86,7 +110,7 @@ const Pathfinding = {
             const ci  = cur.y * S + cur.x;
 
             if (cur.x === ex && cur.y === ey) {
-                return this._reconstruct(cameFromX, cameFromY, ex, ey, S);
+                return this._reconstruct(_cFromX, _cFromY, ex, ey, S);
             }
 
             for (const [dx, dy, cost] of this._DIRS) {
@@ -95,16 +119,16 @@ const Pathfinding = {
 
                 const ni = ny * S + nx;
                 const w  = this._weight(nx, ny);
-                const tg = gScore[ci] + cost * w;
+                const tg = _gScore[ci] + cost * w;
 
-                if (tg < gScore[ni]) {
-                    cameFromX[ni] = cur.x;
-                    cameFromY[ni] = cur.y;
-                    gScore[ni] = tg;
-                    fScore[ni] = tg + this._h(nx, ny, ex, ey);
-                    if (!inOpen[ni]) {
-                        inOpen[ni] = 1;
-                        heap.push({ x: nx, y: ny, f: fScore[ni] });
+                if (tg < _gScore[ni]) {
+                    _cFromX[ni] = cur.x;
+                    _cFromY[ni] = cur.y;
+                    _gScore[ni] = tg;
+                    _fScore[ni] = tg + this._h(nx, ny, ex, ey);
+                    if (!_inOpen[ni]) {
+                        _inOpen[ni] = 1;
+                        heap.push({ x: nx, y: ny, f: _fScore[ni] });
                     }
                 }
             }
@@ -123,7 +147,17 @@ const Pathfinding = {
         if (tid === null) return 1;
         const b = BuildingManager.buildings[tid];
         if (!b) return 1;
-        return b.type === 'wall' ? 50 : 200;
+        if (b.type === 'gate') {
+            // Darvoza: jump yoki normal — har doim qulay o'tish nuqtasi (CoC: askarlar darvozadan kiradi)
+            if (this._jumpZoneActive) return 1;
+            return 8;   // Devordan (50) ancha kam → askarlar darvozani afzal ko'radi
+        }
+        if (b.type === 'wall') {
+            // Jump spell aktiv bo'lsa — devor orqali o'tish mumkin
+            if (this._jumpZoneActive) return 1;
+            return 50;
+        }
+        return 200;
     },
 
     _reconstruct(fromX, fromY, ex, ey, S) {

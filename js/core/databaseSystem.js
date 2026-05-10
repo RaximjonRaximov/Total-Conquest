@@ -137,43 +137,20 @@ const DatabaseSystem = {
     },
 
     _createFakeBaseLayout(level) {
-        // Bu metod faqat bino ma'lumotlarini (x,y,type,level) generatsiya qiladi.
-        // Haqiqiy bazalar kabi mukammal bo'lmasa-da, jang qilishga yetarli.
-        const buildings = [];
-        const center = Math.floor(44 / 2); // Grid.SIZE = 44
-        
-        // Town Hall
-        buildings.push({ type: 'cityHall', x: center-1, y: center-1, level: Math.min(10, level) });
-        
-        // Omborlar va iqtisod (atrofida)
-        buildings.push({ type: 'goldStorage', x: center-3, y: center, level: Math.max(1, level-2) });
-        buildings.push({ type: 'foodStorage', x: center+2, y: center, level: Math.max(1, level-2) });
-        
-        // Mudofaa
-        const defCount = Math.min(10, level + 2);
-        for(let i=0; i<defCount; i++) {
-            const types = ['archerTower', 'scorpio', 'tormenta'];
-            const t = types[Math.floor(Math.random() * Math.min(types.length, level))];
-            
-            const radius = 4 + Math.random() * 6;
-            const angle = Math.random() * Math.PI * 2;
-            const tx = Math.floor(center + Math.cos(angle) * radius);
-            const ty = Math.floor(center + Math.sin(angle) * radius);
-            
-            buildings.push({ type: t, x: tx, y: ty, level: Math.max(1, level-3) });
+        // Matchmaking._MP_TEMPLATES ga mos yondashuv — real template asosida
+        if (typeof Matchmaking !== 'undefined' && Matchmaking.generateBaseLayout) {
+            return JSON.stringify(Matchmaking.generateBaseLayout(Math.min(10, Math.max(1, level))));
         }
-        
-        // Devorlar (Town Hall atrofida)
-        if (level >= 3) {
-            for(let dx = -3; dx <= 3; dx++) {
-                for(let dy = -3; dy <= 3; dy++) {
-                    if (Math.abs(dx) === 3 || Math.abs(dy) === 3) {
-                        buildings.push({ type: 'wall', x: center + dx, y: center + dy, level: Math.max(1, level-2) });
-                    }
-                }
-            }
-        }
-
+        // Fallback: minimal placeholder agar Matchmaking yo'q bo'lsa
+        const center = 22;
+        const buildings = [
+            { type:'cityHall',   x:center-1, y:center-1, level: Math.min(10, level) },
+            { type:'archerTower',x:center-5, y:center-5, level: Math.max(1, level-2) },
+            { type:'archerTower',x:center+4, y:center-5, level: Math.max(1, level-2) },
+            { type:'scorpio',    x:center-5, y:center+4, level: Math.max(1, level-3) },
+            { type:'villa',      x:center-7, y:center-1, level: Math.max(1, level-3) },
+            { type:'goldStorage',x:center+5, y:center-1, level: Math.max(1, level-3) },
+        ];
         return JSON.stringify(buildings);
     }
 };

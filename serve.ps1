@@ -26,16 +26,19 @@ while ($listener.IsListening) {
     $filePath = Join-Path $root $urlPath.TrimStart('/')
 
     if (Test-Path $filePath -PathType Leaf) {
-        $ext     = [System.IO.Path]::GetExtension($filePath)
-        $mime    = if ($mimeTypes[$ext]) { $mimeTypes[$ext] } else { 'application/octet-stream' }
-        $bytes   = [System.IO.File]::ReadAllBytes($filePath)
-        $res.ContentType   = $mime
-        $res.ContentLength64 = $bytes.Length
-        $res.OutputStream.Write($bytes, 0, $bytes.Length)
+        $ext   = [System.IO.Path]::GetExtension($filePath)
+        $mime  = if ($mimeTypes[$ext]) { $mimeTypes[$ext] } else { 'application/octet-stream' }
+        $bytes = [System.IO.File]::ReadAllBytes($filePath)
+        $res.ContentType     = $mime
+        $res.ContentLength64 = [long]$bytes.LongLength
+        try {
+            $res.OutputStream.Write($bytes, 0, $bytes.Length)
+        } catch { }
     } else {
         $res.StatusCode = 404
         $msg = [System.Text.Encoding]::UTF8.GetBytes("Not found")
-        $res.OutputStream.Write($msg, 0, $msg.Length)
+        $res.ContentLength64 = [long]$msg.LongLength
+        try { $res.OutputStream.Write($msg, 0, $msg.Length) } catch { }
     }
-    $res.OutputStream.Close()
+    try { $res.OutputStream.Close() } catch { }
 }

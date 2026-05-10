@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Total Conquest - Rim Imperiyasi</title>
     <meta name="description" content="Total Conquest - Rim imperiyasi strategiya o'yini. Binolar quring, askar yarating, jang qiling!">
+    <meta name="api-base" content="http://localhost:4000/api">
     <link rel="stylesheet" href="css/main.css">
     <link rel="stylesheet" href="css/hud.css">
     <link rel="stylesheet" href="css/loading.css">
@@ -13,28 +14,42 @@
     <link rel="stylesheet" href="css/battle.css">
     <link rel="stylesheet" href="css/deploy.css">
     <link rel="stylesheet" href="css/battleResult.css">
+    <link rel="stylesheet" href="css/trophyRoad.css">
+    <link rel="stylesheet" href="css/globalChat.css">
+    <!-- Google Identity Services (One Tap) -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
-    <!-- Login / Registratsiya Ekrani -->
+    <!-- Login Ekrani -->
     <div id="login-screen" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:linear-gradient(135deg, #0a0e17, #141c32); z-index:10000; flex-direction:column; justify-content:center; align-items:center; color:#fff; font-family:'Cinzel',serif;">
         <div style="font-size:48px; font-weight:900; color:#d4af37; margin-bottom:10px; text-shadow:0 0 20px rgba(212,175,55,0.5); text-align:center;">TOTAL CONQUEST</div>
-        <div style="font-size:20px; color:#aaa; margin-bottom:40px; font-family:sans-serif;">Imperatoringizni ro'yxatdan o'tkazing</div>
-        
-        <div style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); padding:30px; border-radius:16px; width:300px; display:flex; flex-direction:column; gap:20px; backdrop-filter:blur(10px);">
-            <div>
-                <label style="font-size:12px; color:#888; font-family:sans-serif; display:block; margin-bottom:5px;">Ismingiz (ixtiyoriy)</label>
-                <input type="text" id="login-name" placeholder="Masalan: Caesar" style="width:100%; padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.2); background:rgba(0,0,0,0.5); color:#fff; font-size:16px; box-sizing:border-box;">
+        <div style="font-size:16px; color:#aaa; margin-bottom:40px; font-family:sans-serif; text-align:center;">Rim Imperiyasini boshqaring</div>
+
+        <div style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); padding:32px 28px; border-radius:16px; width:300px; display:flex; flex-direction:column; gap:14px; backdrop-filter:blur(10px);">
+
+            <!-- Google One Tap container -->
+            <div id="google-onetap-container" style="width:100%;min-height:44px;display:flex;justify-content:center;"></div>
+            <!-- Fallback Google button -->
+            <button id="btn-google-login" onclick="LoginSystem.loginGoogle()" style="display:flex; align-items:center; justify-content:center; gap:10px; background:#fff; color:#333; border:none; padding:13px 16px; border-radius:10px; font-size:15px; font-weight:600; cursor:pointer; font-family:sans-serif; transition:opacity 0.2s; width:100%;">
+                <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.08 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.29-8.16 2.29-6.26 0-11.57-3.59-13.46-8.85l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg>
+                Google bilan kirish
+            </button>
+
+            <div style="text-align:center; color:#555; font-size:12px; font-family:sans-serif;">— yoki —</div>
+
+            <!-- Guest Login -->
+            <button onclick="LoginSystem.loginGuest()" style="background:linear-gradient(to bottom, #d4af37, #b8860b); color:#000; border:none; padding:13px; border-radius:10px; font-size:15px; font-weight:bold; cursor:pointer; font-family:'Cinzel',serif; transition:opacity 0.2s;">
+                Mehmon sifatida o'ynash
+            </button>
+
+            <div id="login-status" style="text-align:center; font-size:12px; color:#888; font-family:sans-serif; min-height:18px;"></div>
+
+            <div style="font-size:11px; color:#555; font-family:sans-serif; text-align:center; line-height:1.5;">
+                Mehmon hisobi Telegram orqali saqlanadi.<br>Google bilan kirish — doimiy progress.
             </div>
-            <div>
-                <label style="font-size:12px; color:#888; font-family:sans-serif; display:block; margin-bottom:5px;">Yoshingiz (majburiy)</label>
-                <input type="number" id="login-age" placeholder="Masalan: 18" min="5" style="width:100%; padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.2); background:rgba(0,0,0,0.5); color:#fff; font-size:16px; box-sizing:border-box;">
-            </div>
-            <button onclick="LoginSystem.register()" style="background:linear-gradient(to bottom, #d4af37, #b8860b); color:#000; border:none; padding:12px; border-radius:8px; font-size:16px; font-weight:bold; cursor:pointer; font-family:'Cinzel',serif; transition:all 0.2s; margin-top:10px;">Jangni Boshlash</button>
         </div>
     </div>
 
-    <!-- Restart Tugmasi (yuqori o'rtada) -->
-    <button id="temp-reset-btn" onclick="Game.fullReset()" style="position:fixed; top:8px; left:50%; transform:translateX(-50%); z-index:9999; padding:6px 18px; background:linear-gradient(to bottom, #e53935, #b71c1c); color:white; border:none; border-radius:20px; font-weight:bold; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,0.5); font-size:12px; letter-spacing:1px;">🔄 Restart</button>
 
     <!-- Loading Screen -->
     <div id="loading-screen">
@@ -44,10 +59,13 @@
             <div class="loading-bar-fill" id="loading-bar"></div>
         </div>
         <div class="loading-text" id="loading-text">Xarita yuklanmoqda...</div>
+        <div id="loading-tip" style="position:absolute;bottom:40px;left:50%;transform:translateX(-50%);
+             width:min(320px,88vw);text-align:center;font-size:11px;color:rgba(255,255,255,0.35);
+             line-height:1.5;font-style:italic;animation:loadingTipFade 0.6s ease-out;"></div>
     </div>
 
     <!-- Game Canvas -->
-    <canvas id="gameCanvas"></canvas>
+    <canvas id="gameCanvas" style="touch-action:none;"></canvas>
 
     <!-- Modal overlay -->
     <div class="modal-overlay" id="modal-overlay"></div>
@@ -61,13 +79,14 @@
                     <span id="profile-name-display">Askar</span>
                     <span style="color:#d4af37; font-size:9px;">ℹ️ Profil</span>
                 </div>
+                <div id="player-rank" style="font-size:9px; color:#aaa; font-family:sans-serif; margin-top:1px;">Yangi Askar</div>
                 <div class="level-xp-bar"><div class="level-xp-fill"></div></div>
                 <div class="level-xp-text" id="xp-text">0 / 50 XP</div>
             </div>
         </div>
         <div class="hud-center-info">
             <div class="hud-logo">TOTAL CONQUEST</div>
-            <div class="hud-trophy">🏆 <span id="trophy-count">0</span></div>
+            <div class="hud-trophy" onclick="TrophyRoadPanel.show()" style="cursor:pointer;" title="Liga yo'lini ko'rish">🏆 <span id="trophy-count">0</span> <span id="league-badge" style="font-size:11px;margin-left:4px;"></span></div>
         </div>
         <div class="hud-resources">
             <div class="resource-item" id="res-gold-box" onclick="Resources.promptFill('gold')" style="cursor:pointer">
@@ -86,11 +105,73 @@
                 <span class="resource-icon">🍏</span>
                 <span id="res-golden-apple">0</span>
             </div>
+            <!-- Collect All button — CoC uslubida -->
+            <button id="collect-all-btn"
+                    onclick="Game.collectAll()"
+                    title="Barcha resurs binolardan yig'ish"
+                    style="display:none;align-items:center;gap:3px;
+                           background:linear-gradient(135deg,#f9a825,#e65100);
+                           border:1px solid rgba(255,215,0,0.6);border-radius:12px;
+                           padding:3px 9px;cursor:pointer;color:#fff;font-size:11px;
+                           font-weight:700;font-family:inherit;white-space:nowrap;
+                           box-shadow:0 2px 6px rgba(0,0,0,0.4);
+                           transition:transform 0.1s,box-shadow 0.1s;
+                           position:relative;">
+                <span style="font-size:12px;">🧺</span> Yig'ish
+                <span id="collect-all-badge"
+                      style="display:none;position:absolute;top:-5px;right:-5px;
+                             background:#f44336;color:#fff;font-size:8px;font-weight:900;
+                             padding:1px 4px;border-radius:6px;min-width:14px;text-align:center;">
+                </span>
+            </button>
         </div>
     </div>
 
+    <!-- Global Chat float button -->
+    <div id="gcp-float-btn" onclick="GlobalChatPanel.toggle()" title="Global Chat" style="display:none;">
+        💬
+        <div id="gcp-badge" style="display:none;">!</div>
+    </div>
+
+    <!-- Notification bell -->
+    <div id="notif-bell-btn" onclick="NotificationSystem.toggle()"
+         style="position:fixed;top:6px;right:8px;z-index:1001;
+                background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.15);
+                border-radius:8px;width:30px;height:30px;display:flex;align-items:center;
+                justify-content:center;cursor:pointer;font-size:15px;">🔔</div>
+
+    <!-- Daily Mission button -->
+    <div id="mission-btn" onclick="MissionPanel.toggle()"
+         style="position:fixed;top:42px;right:8px;z-index:1001;
+                background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.15);
+                border-radius:8px;width:30px;height:30px;display:flex;align-items:center;
+                justify-content:center;cursor:pointer;font-size:15px;gap:2px;">📋
+        <span id="mission-badge" style="display:none;position:absolute;top:-4px;right:-4px;
+              background:#ff5722;border-radius:50%;width:14px;height:14px;font-size:8px;
+              font-weight:bold;color:#fff;display:none;align-items:center;justify-content:center;"></span>
+    </div>
+
+    <!-- Daily Missions Modal -->
+    <div id="mission-modal"></div>
+
+    <!-- Offline Earnings Modal -->
+    <div id="offline-modal"></div>
+
     <!-- Builder display -->
-    <div class="builder-display" id="builder-display" title="Quruvchilar (bosing — yangi sotib olish)">👷 1/1</div>
+    <div class="builder-display" id="builder-display" title="Quruvchilar (bosing — yangi sotib olish)" onclick="BuilderSystem.showPopup()">👷 1/1</div>
+
+    <!-- Troop capacity bar -->
+    <div id="troop-capacity-hud"
+         style="position:fixed;bottom:76px;left:50%;transform:translateX(-50%);
+                z-index:500;display:flex;align-items:center;gap:5px;
+                background:rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.1);
+                border-radius:8px;padding:3px 8px;pointer-events:none;">
+        <span style="font-size:10px;color:#aaa;">⚔️</span>
+        <div style="width:80px;height:5px;background:rgba(255,255,255,0.15);border-radius:3px;overflow:hidden;">
+            <div id="troop-cap-fill" style="height:100%;width:0%;background:#4caf50;border-radius:3px;transition:width 0.3s;"></div>
+        </div>
+        <span id="troop-cap-text" style="font-size:10px;color:#aaa;">0/0</span>
+    </div>
 
     <!-- Info displays -->
     <div id="coord-display">Tile: -</div>
@@ -149,6 +230,10 @@
             <span class="btn-icon">🏹</span>
             <span>Jang</span>
         </div>
+        <div class="hud-btn" id="btn-campaign" onclick="CampaignPanel.toggle()">
+            <span class="btn-icon">🗺️</span>
+            <span>Kampaniya</span>
+        </div>
         <div class="hud-btn" id="btn-shop">
             <span class="btn-icon">💎</span>
             <span>Do'kon</span>
@@ -157,11 +242,58 @@
             <span class="btn-icon">⚙️</span>
             <span>Sozlama</span>
         </div>
+        <div class="hud-btn" id="btn-war-base" onclick="WarBaseEditor.enter()" title="Urush bazasini tahrirlash">
+            <span class="btn-icon">🛡️</span>
+            <span>Urush</span>
+        </div>
+        <div class="hud-btn" id="btn-season-pass" onclick="SeasonPassPanel.show()" title="Season Pass">
+            <span class="btn-icon">🏅</span>
+            <span>Season</span>
+        </div>
+        <div class="hud-btn" id="btn-magic-items" onclick="MagicItemsPanel.toggle()" title="Sehrli Buyumlar" style="position:relative;">
+            <span class="btn-icon">🧪</span>
+            <span>Buyumlar</span>
+            <div id="magic-items-badge" style="
+                display:none;position:absolute;top:2px;right:2px;
+                background:#e53935;color:#fff;
+                font-size:8px;font-weight:800;
+                min-width:14px;height:14px;border-radius:7px;
+                align-items:center;justify-content:center;
+                border:1.5px solid #0d1520;padding:0 2px;
+            "></div>
+        </div>
+    </div>
+
+    <!-- ── Undo / Redo suzuvchi tugmalar (CoC-style base builder QoL) ─────── -->
+    <div id="bm-undo-bar" style="
+        position:fixed; bottom:90px; left:50%; transform:translateX(-50%);
+        z-index:2100; display:flex; gap:8px; pointer-events:none;">
+        <button id="bm-undo-btn" onclick="BuildingManager.undo()"
+            disabled
+            style="pointer-events:auto;
+                   background:rgba(30,30,40,0.88); border:1px solid rgba(255,255,255,0.18);
+                   color:#fff; font-size:13px; font-weight:700; border-radius:10px;
+                   padding:7px 14px; cursor:pointer; opacity:0.35;
+                   box-shadow:0 2px 8px rgba(0,0,0,0.5); transition:opacity 0.2s;">
+            ↩ Bekor
+        </button>
+        <button id="bm-redo-btn" onclick="BuildingManager.redo()"
+            disabled
+            style="pointer-events:auto;
+                   background:rgba(30,30,40,0.88); border:1px solid rgba(255,255,255,0.18);
+                   color:#fff; font-size:13px; font-weight:700; border-radius:10px;
+                   padding:7px 14px; cursor:pointer; opacity:0.35;
+                   box-shadow:0 2px 8px rgba(0,0,0,0.5); transition:opacity 0.2s;">
+            ↪ Qayta
+        </button>
     </div>
 
     <!-- JS fayllar (tartib muhim!) -->
+    <script src="js/core/api.js"></script>
     <script src="js/utils/helpers.js"></script>
+    <script src="js/utils/spatialGrid.js"></script>
     <script src="js/utils/timer.js"></script>
+    <script src="js/core/assetManager.js"></script>
     <script src="js/core/audioManager.js"></script>
     <script src="js/core/resources.js"></script>
     <script src="js/map/grid.js"></script>
@@ -170,6 +302,10 @@
     <script src="js/map/minimap.js"></script>
     <script src="js/buildings/buildingData.js"></script>
     <script src="js/core/xpSystem.js"></script>
+    <script src="js/core/achievementSystem.js"></script>
+    <script src="js/core/notificationSystem.js"></script>
+    <script src="js/core/seasonalEvents.js"></script>
+    <script src="js/core/seasonPass.js"></script>
     <script src="js/core/builderSystem.js"></script>
     <script src="js/buildings/buildingManager.js"></script>
     <script src="js/buildings/buildingRenderer.js"></script>
@@ -177,6 +313,7 @@
     <script src="js/map/obstacleRenderer.js"></script>
     <script src="js/troops/troopData.js"></script>
     <script src="js/troops/troopManager.js"></script>
+    <script src="js/core/superTroops.js"></script>
     <script src="js/core/researchSystem.js"></script>
     <script src="js/core/pathfinding.js"></script>
     <script src="js/core/battleSystem.js"></script>
@@ -194,11 +331,40 @@
     <script src="js/ui/settingsPanel.js"></script>
     <script src="js/ui/deployPanel.js"></script>
     <script src="js/ui/battleResultPanel.js"></script>
+    <script src="js/ui/shieldHUD.js"></script>
+    <script src="js/ui/leaderboardPanel.js"></script>
     <script src="js/ui/profilePanel.js"></script>
+    <script src="js/ui/battleLogPanel.js"></script>
+    <script src="js/ui/dailyRewardPanel.js"></script>
+    <script src="js/ui/achievementsPanel.js"></script>
+    <script src="js/ui/seasonalEventsPanel.js"></script>
+    <script src="js/ui/missionPanel.js"></script>
+    <script src="js/ui/trophyRoadPanel.js"></script>
+    <script src="js/ui/globalChatPanel.js"></script>
+    <script src="js/ui/miniMap.js"></script>
+    <script src="js/ui/builderQueue.js"></script>
+    <script src="js/ui/battleIntro.js"></script>
+    <script src="js/ui/resourceFlyAnim.js"></script>
+    <script src="js/ui/spellFactoryPanel.js"></script>
+    <script src="js/ui/heroAbilityHUD.js"></script>
+    <script src="js/ui/seasonPassPanel.js"></script>
+    <script src="js/ui/buildingCompleteAnim.js"></script>
     <script src="js/core/databaseSystem.js"></script>
-    <script src="js/core/pathfinding.js"></script>
     <script src="js/core/saveSystem.js"></script>
     <script src="js/core/login.js"></script>
+    <script src="js/core/themeSystem.js"></script>
+    <script src="js/core/prestigeSystem.js"></script>
+    <script src="js/core/spellSystem.js"></script>
+    <script src="js/core/heroSystem.js"></script>
+    <script src="js/core/dailyMissions.js"></script>
+    <script src="js/core/magicItems.js"></script>
+    <script src="js/ui/magicItemsPanel.js"></script>
+    <script src="js/core/matchmaking.js"></script>
+    <script src="js/core/campaignData.js"></script>
+    <script src="js/ui/attackScreen.js"></script>
+    <script src="js/ui/campaignPanel.js"></script>
+    <script src="js/core/layoutShare.js"></script>
+    <script src="js/core/warBaseEditor.js"></script>
     <script src="js/core/input.js"></script>
     <script src="js/core/game.js"></script>
 </body>

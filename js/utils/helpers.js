@@ -27,7 +27,14 @@ const Helpers = {
 
     // Ikki nuqta orasidagi masofa
     distance(x1, y1, x2, y2) {
-        return Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
+        const dx = x2 - x1, dy = y2 - y1;
+        return Math.sqrt(dx * dx + dy * dy);
+    },
+
+    // Kvadrat masofa — sqrt yo'q, faqat solishtirish uchun (3-4x tezroq)
+    distSq(x1, y1, x2, y2) {
+        const dx = x2 - x1, dy = y2 - y1;
+        return dx * dx + dy * dy;
     },
 
     // Random butun son

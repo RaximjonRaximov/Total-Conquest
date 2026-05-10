@@ -2,22 +2,32 @@
 #battle-panel {
     position: fixed;
     bottom: 80px; left: 50%;
-    transform: translateX(-50%);
     background: linear-gradient(145deg, rgba(20,28,50,0.97), rgba(10,14,23,0.97));
     border: 1px solid rgba(212,175,55,0.4);
     border-radius: 16px;
     padding: 16px;
     z-index: 200;
     backdrop-filter: blur(12px);
-    display: none;
     max-width: 560px;
     width: 92vw;
     max-height: 60vh;
     overflow-y: auto;
     box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+
+    opacity: 0;
+    pointer-events: none;
+    visibility: hidden;
+    transform: translateX(-50%) translateY(24px) scale(0.965);
+    transition: opacity 0.22s ease, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), visibility 0s linear 0.3s;
 }
 
-#battle-panel.show { display: block; }
+#battle-panel.show {
+    opacity: 1;
+    pointer-events: auto;
+    visibility: visible;
+    transform: translateX(-50%) translateY(0) scale(1);
+    transition: opacity 0.22s ease, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), visibility 0s linear 0s;
+}
 
 .battle-title {
     font-family: 'Cinzel', serif;
@@ -247,22 +257,32 @@
 #research-panel {
     position: fixed;
     bottom: 80px; left: 50%;
-    transform: translateX(-50%);
     background: linear-gradient(145deg, rgba(20,28,50,0.97), rgba(10,14,23,0.97));
     border: 1px solid rgba(212,175,55,0.4);
     border-radius: 16px;
     padding: 16px;
     z-index: 200;
     backdrop-filter: blur(12px);
-    display: none;
     max-width: 520px;
     width: 90vw;
     max-height: 60vh;
     overflow-y: auto;
     box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+
+    opacity: 0;
+    pointer-events: none;
+    visibility: hidden;
+    transform: translateX(-50%) translateY(24px) scale(0.965);
+    transition: opacity 0.22s ease, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), visibility 0s linear 0.3s;
 }
 
-#research-panel.show { display: block; }
+#research-panel.show {
+    opacity: 1;
+    pointer-events: auto;
+    visibility: visible;
+    transform: translateX(-50%) translateY(0) scale(1);
+    transition: opacity 0.22s ease, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), visibility 0s linear 0s;
+}
 
 .research-title {
     font-family: 'Cinzel', serif;
@@ -365,8 +385,9 @@
 }
 
 .research-item.maxed {
-    opacity: 0.6;
-    border-color: rgba(76,175,80,0.3);
+    opacity: 0.75;
+    border-color: rgba(76,175,80,0.4);
+    background: rgba(76,175,80,0.05);
 }
 
 .research-item.active {

@@ -105,7 +105,7 @@ const AudioManager = {
         if (!this.enabled || !this.ctx) return;
         const now = this.ctx.currentTime;
         const notes = [440, 554, 659, 880]; // A major
-        
+
         notes.forEach((freq, i) => {
             const osc = this.ctx.createOscillator();
             const gain = this.ctx.createGain();
@@ -113,13 +113,55 @@ const AudioManager = {
             osc.frequency.value = freq;
             osc.connect(gain);
             gain.connect(this.ctx.destination);
-            
+
             gain.gain.setValueAtTime(0, now + i * 0.15);
             gain.gain.linearRampToValueAtTime(0.1, now + i * 0.15 + 0.05);
             gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.15 + 0.5);
-            
+
             osc.start(now + i * 0.15);
             osc.stop(now + i * 0.15 + 0.5);
+        });
+    },
+
+    // Yutuq/daraja oshishi uchun qisqa fanfar
+    playSuccess() {
+        if (!this.enabled || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        // Rising arpeggio: C5 E5 G5 C6
+        const notes = [523, 659, 784, 1047];
+        notes.forEach((freq, i) => {
+            const osc  = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.value = freq;
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            const t = now + i * 0.1;
+            gain.gain.setValueAtTime(0, t);
+            gain.gain.linearRampToValueAtTime(0.12, t + 0.04);
+            gain.gain.exponentialRampToValueAtTime(0.01, t + 0.45);
+            osc.start(t);
+            osc.stop(t + 0.46);
+        });
+    },
+
+    // Offline daromad yig'ilganda
+    playCollect() {
+        if (!this.enabled || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        // Short coin jingle
+        [1200, 1600, 2000].forEach((freq, i) => {
+            const osc  = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.value = freq;
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            const t = now + i * 0.06;
+            gain.gain.setValueAtTime(0.12, t);
+            gain.gain.exponentialRampToValueAtTime(0.01, t + 0.28);
+            osc.start(t);
+            osc.stop(t + 0.3);
         });
     }
 };
