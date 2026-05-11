@@ -35,23 +35,46 @@ const Grid = {
 
     // Init vaqtida bir marta chaqiriladi
     _computeTileColor(x, y) {
-        if (x < this.UNBUILDABLE_BORDER || x >= this.SIZE - this.UNBUILDABLE_BORDER ||
-            y < this.UNBUILDABLE_BORDER || y >= this.SIZE - this.UNBUILDABLE_BORDER) {
+        const distFromEdge = Math.min(x, y, this.SIZE - 1 - x, this.SIZE - 1 - y);
+
+        if (distFromEdge <= 1) {
+            // Qumloq plaj zonasi — CoC kabi
+            const sandV = Math.sin(x * 73.1 + y * 157.3) * 0.5 + 0.5;
+            const sl = 58 + sandV * 8;
             return {
-                top:   'hsl(120,40%,25%)',
-                left:  'hsl(120,40%,20%)',
-                right: 'hsl(120,40%,15%)'
+                top:   `hsl(42,52%,${sl|0}%)`,
+                left:  `hsl(42,48%,${(sl - 10)|0}%)`,
+                right: `hsl(42,45%,${(sl - 16)|0}%)`
             };
         }
+        if (distFromEdge <= 3) {
+            // O'tish zonasi — qumloq-yashil aralash
+            const mix = (distFromEdge - 1) / 2;
+            const sandV = Math.sin(x * 73.1 + y * 157.3) * 0.5 + 0.5;
+            const hue = 42 + mix * 58;
+            const sat = 48 + mix * 22;
+            const sl  = 56 - mix * 10 + sandV * 5;
+            return {
+                top:   `hsl(${hue|0},${sat|0}%,${sl|0}%)`,
+                left:  `hsl(${hue|0},${sat|0}%,${(sl - 9)|0}%)`,
+                right: `hsl(${hue|0},${sat|0}%,${(sl - 15)|0}%)`
+            };
+        }
+
+        // Asosiy o'ynaladigan zona — CoC / Total Conquest yashil maysazor
         const seed = Math.sin(x * 127.1 + y * 311.7) * 43758.5453;
         const v = seed - Math.floor(seed);
-        const hue   = 76  + v * 12;
-        const sat   = 55  + v * 15;
-        const light = 38  + v * 8;
+        const seed2 = Math.sin(x * 53.7 + y * 89.3) * 23421.6312;
+        const v2 = seed2 - Math.floor(seed2);
+
+        // CoC-ga o'xshash yorqin yashil ranglar
+        const hue   = 100 + v * 18;        // 100-118 (yashil diapazon)
+        const sat   = 62  + v2 * 18;       // 62-80 (yuqori to'yinganlik)
+        const light = 40  + v * 10;        // 40-50 (yorqin yashil)
         return {
             top:   `hsl(${hue|0},${sat|0}%,${light|0}%)`,
-            left:  `hsl(${hue|0},${sat|0}%,${(light-8)|0}%)`,
-            right: `hsl(${hue|0},${sat|0}%,${(light-14)|0}%)`
+            left:  `hsl(${hue|0},${sat|0}%,${(light - 8)|0}%)`,
+            right: `hsl(${hue|0},${sat|0}%,${(light - 14)|0}%)`
         };
     },
 

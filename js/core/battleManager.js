@@ -1920,11 +1920,11 @@ const BattleManager = {
 
     _getAuraMult(troop) {
         let mult = 1;
-        // Commander aura — distSq ishlatiladi (sqrt yo'q)
+        // Hero aura — distSq ishlatiladi (sqrt yo'q)
         for (const t of this.troops) {
-            if (t === troop || t.type !== 'commander' || t.hp <= 0) continue;
-            const td = TROOP_DATA.commander;
-            if (!td?.stats?.aura) continue;
+            if (t === troop || t.hp <= 0) continue;
+            const td = TROOP_DATA[t.type];
+            if (!td?.stats?.aura || td.category !== 'qahramon') continue;
             const radius = td.stats.auraRadius || 4;
             const dx = t.x - troop.x, dy = t.y - troop.y;
             if (dx*dx + dy*dy <= radius * radius) {

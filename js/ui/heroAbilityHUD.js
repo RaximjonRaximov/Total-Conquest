@@ -6,7 +6,7 @@
 const HeroAbilityHUD = {
     _el: null,
     _rafId: null,
-    _activateModes: {}, // { commander: false, sagittaria: false }
+    _activateModes: {}, // { legatus: false, aquilifer: false, ... }
 
     init() {
         this._el = document.getElementById('hero-ability-hud');

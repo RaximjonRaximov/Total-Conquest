@@ -312,7 +312,7 @@ const MapRenderer = {
         this._tileCache = null;
     },
 
-    // Bitta tile chizish
+    // Bitta tile chizish — CoC / Total Conquest uslubida
     drawTile(x, y, hover, isBgLoaded = false) {
         const iso = Camera.toIso(x, y);
         const screen = Camera.worldToScreen(iso.x, iso.y);
@@ -321,41 +321,22 @@ const MapRenderer = {
 
         const hw = Grid.TILE_W * Camera.zoom / 2;
         const hh = Grid.TILE_H * Camera.zoom / 2;
-        const d = 5 * Camera.zoom;
+        const d = 6 * Camera.zoom;
 
         // Ekrandan tashqaridagilarni o'tkazish
         if (px + hw < -10 || px - hw > this.canvas.width + 10 ||
             py + hh < -10 || py - hh > this.canvas.height + 60) return;
 
-        // Agar foydalanuvchi fon rasmini qo'ygan bo'lsa, qattiq green tilelarni chizmaymiz
+        const distFromEdge = Math.min(x, y, Grid.SIZE - 1 - x, Grid.SIZE - 1 - y);
+
         if (!isBgLoaded) {
             const c = Grid.getTileColor(x, y);
-
-            // Chegaradagi tilelar — qumloq rang
-            const distFromEdge = Math.min(x, y, Grid.SIZE - 1 - x, Grid.SIZE - 1 - y);
-            let topColor = c.top;
-            let leftColor = c.left;
-            let rightColor = c.right;
-
-            if (distFromEdge <= 1) {
-                // Suv chegarasi — qumli
-                topColor = `hsl(45, 40%, ${42 + distFromEdge * 5}%)`;
-                leftColor = `hsl(45, 40%, ${34 + distFromEdge * 5}%)`;
-                rightColor = `hsl(45, 40%, ${28 + distFromEdge * 5}%)`;
-            } else if (distFromEdge <= 3) {
-                // O'tish zonasi — yashil-qumloq
-                const mix = (distFromEdge - 1) / 2;
-                topColor = this._blendColor(c.top, `hsl(45, 40%, 42%)`, 1 - mix);
-                leftColor = this._blendColor(c.left, `hsl(45, 40%, 34%)`, 1 - mix);
-                rightColor = this._blendColor(c.right, `hsl(45, 40%, 28%)`, 1 - mix);
-            }
 
             const tileImg = this.loadImage('assets/map/tile.png');
 
             if (tileImg) {
                 const iw = Grid.TILE_W * Camera.zoom;
-                const ih = tileImg.height * (iw / tileImg.width); // Aspect ratio saqlash
-                // Tile rasm isometrik hisoblangani uchun top-left koordinatasini to'g'rilash
+                const ih = tileImg.height * (iw / tileImg.width);
                 this.ctx.drawImage(tileImg, px - hw, py - ih/2, iw, ih);
             } else {
                 // Yuqori yuz
@@ -365,17 +346,17 @@ const MapRenderer = {
                 this.ctx.lineTo(px, py + hh);
                 this.ctx.lineTo(px - hw, py);
                 this.ctx.closePath();
-                this.ctx.fillStyle = topColor;
+                this.ctx.fillStyle = c.top;
                 this.ctx.fill();
 
-                // Chap yon
+                // Chap yon (qalinroq soya — 3D effekt)
                 this.ctx.beginPath();
                 this.ctx.moveTo(px - hw, py);
                 this.ctx.lineTo(px, py + hh);
                 this.ctx.lineTo(px, py + hh + d);
                 this.ctx.lineTo(px - hw, py + d);
                 this.ctx.closePath();
-                this.ctx.fillStyle = leftColor;
+                this.ctx.fillStyle = c.left;
                 this.ctx.fill();
 
                 // O'ng yon
@@ -385,53 +366,69 @@ const MapRenderer = {
                 this.ctx.lineTo(px, py + hh + d);
                 this.ctx.lineTo(px + hw, py + d);
                 this.ctx.closePath();
-                this.ctx.fillStyle = rightColor;
+                this.ctx.fillStyle = c.right;
                 this.ctx.fill();
 
-                // ── Tile dekoratsiyasi — o't, gul, tosh patchlar ─────────────────
-                if (distFromEdge > 3) {
+                // ── CoC-style tile dekoratsiyasi ─────────────────────────
+                const z2 = Camera.zoom;
+                if (distFromEdge > 3 && z2 > 0.35) {
                     const seed = Math.sin(x * 127.1 + y * 311.7) * 43758.5453;
                     const v = seed - Math.floor(seed);
                     const seed2 = Math.sin(x * 1664525 + y * 1013904223) * 22695477.5;
                     const v2 = seed2 - Math.floor(seed2);
-                    const z2 = Camera.zoom;
 
-                    if (v > 0.88) {
-                        // O't cho'qi — 2-3 ta kichik chiziq
+                    if (v > 0.85) {
+                        // O't cho'qi — 2-3 ta kichik chiziq (CoC maysazor)
                         const gx0 = px + (v - 0.5) * hw * 0.5;
                         const gy0 = py + (v - 0.5) * hh * 0.3;
                         const blades = 2 + (v2 > 0.5 ? 1 : 0);
                         for (let bi = 0; bi < blades; bi++) {
-                            const bOx = (bi - 1) * 2 * z2;
-                            this.ctx.globalAlpha = 0.28 + v * 0.12;
-                            this.ctx.strokeStyle = `hsl(${90 + v * 30},${60 + bi * 5}%,${30 + v * 12}%)`;
-                            this.ctx.lineWidth   = 0.8 * z2;
+                            const bOx = (bi - 1) * 2.5 * z2;
+                            this.ctx.globalAlpha = 0.35 + v * 0.15;
+                            this.ctx.strokeStyle = `hsl(${105 + v * 20},${65 + bi * 5}%,${32 + v * 10}%)`;
+                            this.ctx.lineWidth   = 1.0 * z2;
                             this.ctx.lineCap     = 'round';
                             this.ctx.beginPath();
                             this.ctx.moveTo(gx0 + bOx, gy0 + 2 * z2);
-                            this.ctx.lineTo(gx0 + bOx + (bi - 0.5) * z2, gy0 - 2.5 * z2);
+                            this.ctx.lineTo(gx0 + bOx + (bi - 0.5) * 1.2 * z2, gy0 - 3 * z2);
                             this.ctx.stroke();
                         }
                         this.ctx.globalAlpha = 1;
-                    } else if (v > 0.80 && v2 > 0.65) {
-                        // Kichik tosh — kulrang ellips
+                    } else if (v > 0.78 && v2 > 0.6) {
+                        // Kichik tosh
                         const rx = px + (v2 - 0.5) * hw * 0.6;
                         const ry = py + (v  - 0.5) * hh * 0.4;
-                        this.ctx.globalAlpha = 0.22;
-                        this.ctx.fillStyle   = `hsl(0,0%,${40 + v2 * 18}%)`;
+                        this.ctx.globalAlpha = 0.20;
+                        this.ctx.fillStyle   = `hsl(30,8%,${42 + v2 * 15}%)`;
                         this.ctx.beginPath();
-                        this.ctx.ellipse(rx, ry, 2.2 * z2, 1.2 * z2, v2 * Math.PI, 0, Math.PI * 2);
+                        this.ctx.ellipse(rx, ry, 2.5 * z2, 1.3 * z2, v2 * Math.PI, 0, Math.PI * 2);
                         this.ctx.fill();
                         this.ctx.globalAlpha = 1;
-                    } else if (v > 0.76 && v2 < 0.25) {
-                        // Kichik gul — sariq/oq nuqta
+                    } else if (v > 0.72 && v2 < 0.2) {
+                        // Kichik gul — CoC-dagi kabi rangdor
                         const fx = px + (v2 - 0.5) * hw * 0.8;
                         const fy = py + (v  - 0.5) * hh * 0.5;
-                        const flowerColor = v2 < 0.12 ? `hsl(55,90%,${65 + v*15}%)` : `rgba(255,255,255,0.7)`;
-                        this.ctx.globalAlpha = 0.45;
-                        this.ctx.fillStyle   = flowerColor;
+                        const flowerHue = v2 < 0.08 ? 55 : (v2 < 0.14 ? 350 : 280);
+                        this.ctx.globalAlpha = 0.50;
+                        this.ctx.fillStyle = `hsl(${flowerHue},85%,72%)`;
                         this.ctx.beginPath();
-                        this.ctx.arc(fx, fy, 1.0 * z2, 0, Math.PI * 2);
+                        this.ctx.arc(fx, fy, 1.2 * z2, 0, Math.PI * 2);
+                        this.ctx.fill();
+                        this.ctx.globalAlpha = 1;
+                    }
+                }
+
+                // Plaj zonasida qumloq texture (CoC sand dots)
+                if (distFromEdge <= 2 && z2 > 0.4) {
+                    const sandSeed = Math.sin(x * 317.7 + y * 127.1) * 12345.678;
+                    const sv = sandSeed - Math.floor(sandSeed);
+                    if (sv > 0.6) {
+                        this.ctx.globalAlpha = 0.15;
+                        this.ctx.fillStyle = 'hsl(40,35%,70%)';
+                        const sdx = px + (sv - 0.5) * hw * 0.4;
+                        const sdy = py + (sv - 0.3) * hh * 0.3;
+                        this.ctx.beginPath();
+                        this.ctx.arc(sdx, sdy, 0.8 * z2, 0, Math.PI * 2);
                         this.ctx.fill();
                         this.ctx.globalAlpha = 1;
                     }
@@ -439,14 +436,14 @@ const MapRenderer = {
             }
         } // if !isBgLoaded end
 
-        // Grid chiziq (Har doim chizamiz, hattoki rasm qo'yilgan bo'lsa ham)
+        // Grid chiziq — CoC uslubida nozik
         this.ctx.beginPath();
         this.ctx.moveTo(px, py - hh);
         this.ctx.lineTo(px + hw, py);
         this.ctx.lineTo(px, py + hh);
         this.ctx.lineTo(px - hw, py);
         this.ctx.closePath();
-        this.ctx.strokeStyle = isBgLoaded ? 'rgba(0,0,0,0.1)' : 'rgba(0,0,0,0.06)';
+        this.ctx.strokeStyle = isBgLoaded ? 'rgba(0,0,0,0.08)' : 'rgba(0,0,0,0.04)';
         this.ctx.lineWidth = 0.5;
         this.ctx.stroke();
 
@@ -458,9 +455,9 @@ const MapRenderer = {
             this.ctx.lineTo(px, py + hh);
             this.ctx.lineTo(px - hw, py);
             this.ctx.closePath();
-            this.ctx.fillStyle = 'rgba(255,255,255,0.15)';
+            this.ctx.fillStyle = 'rgba(255,255,255,0.18)';
             this.ctx.fill();
-            this.ctx.strokeStyle = 'rgba(212,175,55,0.7)';
+            this.ctx.strokeStyle = 'rgba(255,215,0,0.6)';
             this.ctx.lineWidth = 1.5 * Camera.zoom;
             this.ctx.stroke();
         }
@@ -513,14 +510,16 @@ const MapRenderer = {
             const ih = bgImg.height * z;
             this.ctx.drawImage(bgImg, screen.x - iw/2, screen.y - ih/2, iw, ih);
         } else {
+            // CoC / Total Conquest uslubida tropik okean foni
             const gradient = this.ctx.createRadialGradient(
                 this.canvas.width / 2, this.canvas.height / 2, 0,
                 this.canvas.width / 2, this.canvas.height / 2,
-                Math.max(this.canvas.width, this.canvas.height) / 1.5
+                Math.max(this.canvas.width, this.canvas.height) / 1.3
             );
-            gradient.addColorStop(0, '#1a2840');
-            gradient.addColorStop(0.6, '#122035');
-            gradient.addColorStop(1, '#0a1525');
+            gradient.addColorStop(0, '#1a6e8e');   // Yorqin tropik ko'k
+            gradient.addColorStop(0.3, '#145f7a');
+            gradient.addColorStop(0.6, '#0d4a65');
+            gradient.addColorStop(1, '#082838');    // Chuqur okean
             this.ctx.fillStyle = gradient;
             this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
             this._drawWaterEffect();
@@ -919,10 +918,11 @@ const MapRenderer = {
         const W = this.canvas.width;
         const H = this.canvas.height;
         ctx.save();
-        // Tashqi halqa
-        const vg = ctx.createRadialGradient(W/2, H/2, Math.min(W,H)*0.35, W/2, H/2, Math.max(W,H)*0.75);
+        // CoC-style yumshoq vignette — chetlarda biroz qorayadi
+        const vg = ctx.createRadialGradient(W/2, H/2, Math.min(W,H)*0.4, W/2, H/2, Math.max(W,H)*0.78);
         vg.addColorStop(0, 'rgba(0,0,0,0)');
-        vg.addColorStop(1, 'rgba(0,0,0,0.55)');
+        vg.addColorStop(0.7, 'rgba(0,0,0,0.08)');
+        vg.addColorStop(1, 'rgba(0,0,0,0.35)');
         ctx.fillStyle = vg;
         ctx.fillRect(0, 0, W, H);
         ctx.restore();
@@ -935,30 +935,29 @@ const MapRenderer = {
         const W = this.canvas.width;
         const H = this.canvas.height;
 
-        // ── Katta to'lqin panjaralari — xaritaning barcha 4 tomonida ─────────────
-        const LAYERS = 5;
+        // ── CoC/TC uslubida tropik okean to'lqinlari — xarita atrofida ─────────
+        const LAYERS = 6;
         for (let side = 0; side < 4; side++) {
             for (let i = 0; i < LAYERS; i++) {
-                const wavePhase = time * 0.6 + i * 1.4 + side * 2.7;
-                const waveOff   = Math.sin(wavePhase) * 2.5 * z;
-                const alpha     = (0.12 - i * 0.02) * Math.max(0.3, z);
+                const wavePhase = time * 0.5 + i * 1.2 + side * 2.5;
+                const waveOff   = Math.sin(wavePhase) * 3.0 * z;
+                const alpha     = (0.18 - i * 0.025) * Math.max(0.3, z);
 
-                let edgeA, edgeB;  // start/end tile coords of this edge strip
-                if (side === 0) { // Top-left edge (x+y = -1 - i)
+                let edgeA, edgeB;
+                if (side === 0) {
                     edgeA = { x: -1 - i, y: -1 - i };
                     edgeB = { x: Grid.SIZE + i, y: -1 - i };
-                } else if (side === 1) { // Top-right edge
+                } else if (side === 1) {
                     edgeA = { x: Grid.SIZE + i, y: -1 - i };
                     edgeB = { x: Grid.SIZE + i, y: Grid.SIZE + i };
-                } else if (side === 2) { // Bottom-right edge
+                } else if (side === 2) {
                     edgeA = { x: Grid.SIZE + i, y: Grid.SIZE + i };
                     edgeB = { x: -1 - i, y: Grid.SIZE + i };
-                } else { // Bottom-left edge
+                } else {
                     edgeA = { x: -1 - i, y: Grid.SIZE + i };
                     edgeB = { x: -1 - i, y: -1 - i };
                 }
 
-                // Har edge tilesini chizish
                 const steps = Grid.SIZE + 4;
                 for (let s = 0; s < steps; s++) {
                     const tx = edgeA.x + (edgeB.x - edgeA.x) * s / steps;
@@ -970,9 +969,11 @@ const MapRenderer = {
                     const hw = Grid.TILE_W * z / 2;
                     const hh = Grid.TILE_H * z / 2;
                     const depth = i / LAYERS;
-                    const r = Math.round(20 + depth * 40);
-                    const gv = Math.round(80 + depth * 50);
-                    const bv = Math.round(150 + depth * 50);
+
+                    // Tropik ko'k-yashil okean ranglari (CoC uslubi)
+                    const r  = Math.round(15 + depth * 25);
+                    const gv = Math.round(90 + depth * 45 + Math.sin(wavePhase + s * 0.1) * 10);
+                    const bv = Math.round(140 + depth * 60);
 
                     ctx.globalAlpha = alpha;
                     ctx.fillStyle = `rgba(${r},${gv},${bv},1)`;
@@ -987,16 +988,15 @@ const MapRenderer = {
             }
         }
 
-        // ── To'lqin chiziqlar (shimmer) — xarita atrofida ────────────────────────
-        ctx.globalAlpha = 0.08;
-        ctx.strokeStyle = 'rgba(120,200,255,1)';
-        ctx.lineWidth   = 1 * z;
-        for (let si = 0; si < 4; si++) {
-            const wave2 = Math.sin(time * 0.8 + si * 2.1) * 4 * z;
-            // Shimoliy chiziq
-            const startIso = Camera.toIso(-2, -2 - si);
+        // ── Ko'pik chiziqlar (foam shimmer) — CoC-dagi qirg'oq ko'pigi ───────────
+        ctx.globalAlpha = 0.12;
+        ctx.strokeStyle = 'rgba(180,230,255,1)';
+        ctx.lineWidth   = 1.2 * z;
+        for (let si = 0; si < 3; si++) {
+            const wave2 = Math.sin(time * 0.6 + si * 2.5) * 3.5 * z;
+            const startIso = Camera.toIso(-1, -1 - si * 0.5);
             const startSc  = Camera.worldToScreen(startIso.x, startIso.y + wave2);
-            const endIso   = Camera.toIso(Grid.SIZE + 2, -2 - si);
+            const endIso   = Camera.toIso(Grid.SIZE + 1, -1 - si * 0.5);
             const endSc    = Camera.worldToScreen(endIso.x, endIso.y + wave2);
             if (startSc.y > -20 && startSc.y < H + 20) {
                 ctx.beginPath();

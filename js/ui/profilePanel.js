@@ -134,19 +134,24 @@ const ProfilePanel = {
 
                 <!-- Hero stats chip -->
                 ${typeof HeroSystem !== 'undefined' ? (() => {
-                    const hero = HeroSystem.commanders.commander;
-                    const stats = HeroSystem.getCommanderStats('commander');
-                    const prog  = HeroSystem.getXPProgress('commander');
-                    const regenSec = HeroSystem.getRegenRemaining('commander');
+                    const _activeHeroes = HeroSystem.getActiveHeroes();
+                    const _heroKey = _activeHeroes.length > 0 ? _activeHeroes[0] : 'legatus';
+                    const hero = HeroSystem.commanders[_heroKey];
+                    const stats = HeroSystem.getCommanderStats(_heroKey);
+                    const prog  = HeroSystem.getXPProgress(_heroKey);
+                    const regenSec = HeroSystem.getRegenRemaining(_heroKey);
+                    const _heroData = typeof TROOP_DATA !== 'undefined' ? TROOP_DATA[_heroKey] : null;
+                    const _heroIcon = _heroData?.icon || '🦁';
+                    const _heroName = _heroData?.name || 'Qahramon';
                     return `
                     <div style="background:rgba(255,215,0,0.06);border:1px solid rgba(255,215,0,0.2);
                                 border-radius:10px;padding:10px;margin-bottom:10px;
                                 display:flex;align-items:center;gap:10px;">
-                        <div style="font-size:24px;flex-shrink:0;">👑</div>
+                        <div style="font-size:24px;flex-shrink:0;">${_heroIcon}</div>
                         <div style="flex:1;min-width:0;">
                             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-                                <span style="font-size:12px;font-weight:700;color:#ffd700;">Qo'mondon</span>
-                                <span style="font-size:10px;color:#888;">Lvl ${hero.level}</span>
+                                <span style="font-size:12px;font-weight:700;color:#ffd700;">${_heroName}</span>
+                                <span style="font-size:10px;color:#888;">Lvl ${hero?.level || 1}</span>
                             </div>
                             <div style="height:4px;background:rgba(255,255,255,0.07);border-radius:2px;overflow:hidden;margin-bottom:3px;">
                                 <div style="height:100%;width:${Math.round(prog*100)}%;

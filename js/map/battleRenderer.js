@@ -2450,8 +2450,6 @@ const BattleRenderer = {
 
         // ── Hero belgisi — barcha qahramon turlari ────────────────────────────────
         const _HERO_BADGE = {
-            commander:        { icon: '👑', color: '#ffd700' },
-            sagittaria:       { icon: '🏹', color: '#69f0ae' },
             legatus:          { icon: '🦁', color: '#ffca28' },
             aquilifer:        { icon: '🦅', color: '#78909c' },
             praetorian_guard: { icon: '🛡️', color: '#90a4ae' },
