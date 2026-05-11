@@ -2,12 +2,13 @@ import asyncio
 import logging
 import os
 import sys
+import uuid
 
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 
-from config import Config
+from config import CONTENT_TYPE_NEWS, Config
 from database.models import ContentPost, async_session, init_db
 from handlers import approval, commands, content_input, system_settings
 from services.ai_editor import AIEditor
@@ -59,31 +60,40 @@ def clear_editing_post():
     _editing_post_id = None
 
 
-async def trigger_search():
-    """Kontent qidirish va admin ga yuborish."""
-    logger.info("Kontent qidirish boshlandi...")
+async def trigger_search(content_type: str = CONTENT_TYPE_NEWS):
+    """Kontent turiga qarab qidirish va admin ga yuborish."""
+    type_labels = {
+        "ai_news": "📰 AI Yangiliklar",
+        "ai_prompt": "🎨 AI Prompt + Rasm",
+        "ai_generated": "🎬 AI Yaratgan Kontent",
+    }
+    type_label = type_labels.get(content_type, content_type)
+
+    logger.info(f"Kontent qidirish boshlandi: {type_label}")
 
     try:
-        contents = await content_finder.find_content()
+        contents = await content_finder.find_content(content_type)
 
         if not contents:
-            logger.warning("Hech qanday kontent topilmadi")
+            logger.warning(f"Hech qanday kontent topilmadi: {content_type}")
             if bot:
                 await bot.send_message(
                     Config.ADMIN_USER_ID,
-                    "🔍 Kontent topilmadi. Keyinroq qayta uriniladi.",
+                    f"🔍 {type_label} — kontent topilmadi. "
+                    f"Keyinroq qayta uriniladi.",
                 )
             return
 
         best = contents[0]
         for item in contents:
-            if item.get("image_url"):
+            if item.get("image_url") or item.get("video_url"):
                 best = item
                 break
 
         result = await ai_editor.translate_and_format(
             f"Sarlavha: {best['title']}\n\n{best['text']}",
             source_url=best.get("url"),
+            content_type=content_type,
         )
 
         body = result["body"]
@@ -91,9 +101,9 @@ async def trigger_search():
             body += "\n\n" + " ".join(f"#{t}" for t in result["hashtags"])
 
         image_path = None
-        if best.get("image_url"):
-            import uuid
+        video_path = None
 
+        if best.get("image_url"):
             filename = f"{uuid.uuid4().hex}.jpg"
             image_path = await content_finder.download_image(
                 best["image_url"], filename
@@ -107,8 +117,10 @@ async def trigger_search():
                 source_url=best.get("url"),
                 source_name=best.get("source"),
                 image_path=image_path,
+                video_path=video_path,
                 status="pending",
                 origin="auto",
+                content_type=content_type,
             )
             session.add(post)
             await session.commit()
@@ -121,17 +133,17 @@ async def trigger_search():
                 bot,
                 Config.ADMIN_USER_ID,
                 post,
-                prefix="🔍 <b>Yangi kontent topildi:</b>\n\n",
+                prefix=f"🔍 <b>{type_label} topildi:</b>\n\n",
             )
 
-        logger.info(f"Post #{post.id} admin ga yuborildi")
+        logger.info(f"Post #{post.id} ({content_type}) admin ga yuborildi")
 
     except Exception as e:
-        logger.error(f"Kontent qidirish xatosi: {e}")
+        logger.error(f"Kontent qidirish xatosi ({content_type}): {e}")
         if bot:
             await bot.send_message(
                 Config.ADMIN_USER_ID,
-                f"❌ Kontent qidirishda xatolik: {str(e)[:500]}",
+                f"❌ {type_label} qidirishda xatolik: {str(e)[:500]}",
             )
 
 
@@ -169,12 +181,14 @@ async def main():
 
     logger.info("Bot ishga tushmoqda...")
 
+    schedule_info = scheduler.get_schedule_info()
+
     try:
         await bot.send_message(
             Config.ADMIN_USER_ID,
             "🤖 <b>AI Kontent Agent ishga tushdi!</b>\n\n"
-            f"📅 Jadval: {', '.join(str(h) + ':00' for h in sorted(Config.SCHEDULE_HOURS))}\n"
-            f"📢 Kanallar: {', '.join(Config.TELEGRAM_CHANNELS) or 'Sozlanmagan'}\n\n"
+            f"{schedule_info}\n\n"
+            f"📢 Kanal: {', '.join(Config.TELEGRAM_CHANNELS) or 'Sozlanmagan'}\n\n"
             "/help — Barcha buyruqlar",
         )
     except Exception as e:

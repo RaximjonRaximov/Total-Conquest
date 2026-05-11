@@ -43,8 +43,10 @@ async def cmd_help(message: Message):
     await message.answer(
         "📋 <b>Barcha buyruqlar:</b>\n\n"
         "<b>🔍 Kontent:</b>\n"
-        "/search — Hozir AI kontent qidirish\n"
-        "/search [mavzu] — Mavzu bo'yicha qidirish\n\n"
+        "/search — AI yangiliklar qidirish\n"
+        "/search news — AI yangiliklar\n"
+        "/search prompt — AI prompt + rasm\n"
+        "/search video — AI yaratgan kontent\n\n"
         "<b>📅 Jadval:</b>\n"
         "/schedule — Joriy jadval\n"
         "/schedule set 9,13,18 — Soatlarni belgilash\n\n"

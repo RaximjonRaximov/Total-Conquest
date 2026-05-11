@@ -107,11 +107,11 @@ async def on_approve(callback: CallbackQuery):
             return
 
         post.status = "approved"
+        post_content_type = post.content_type or "ai_news"
         await session.commit()
 
     await callback.answer("✅ Tasdiqlandi! Yuborilmoqda...")
 
-    # Import here to avoid circular
     from main import get_publisher, get_scheduler
 
     publisher = get_publisher()
@@ -120,7 +120,7 @@ async def on_approve(callback: CallbackQuery):
     pub_results = await publisher.publish_post(post_id)
     report = publisher.format_publish_report(pub_results)
 
-    scheduler.mark_approved()
+    scheduler.mark_approved(post_content_type)
 
     await callback.message.answer(report, parse_mode="HTML")
 

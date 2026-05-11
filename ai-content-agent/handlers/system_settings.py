@@ -160,15 +160,38 @@ async def cmd_schedule(message: Message):
 
 @router.message(Command("search"))
 async def cmd_search(message: Message):
-    """Hozir kontent qidirish."""
+    """Hozir kontent qidirish. /search [news|prompt|generated]"""
     if message.from_user.id != Config.ADMIN_USER_ID:
         return
 
-    await message.answer("🔍 Kontent qidirilmoqda...")
+    from config import CONTENT_TYPE_GENERATED, CONTENT_TYPE_NEWS, CONTENT_TYPE_PROMPT
+
+    args = message.text.split()
+    content_type = CONTENT_TYPE_NEWS
+
+    if len(args) > 1:
+        type_map = {
+            "news": CONTENT_TYPE_NEWS,
+            "yangilik": CONTENT_TYPE_NEWS,
+            "prompt": CONTENT_TYPE_PROMPT,
+            "rasm": CONTENT_TYPE_PROMPT,
+            "generated": CONTENT_TYPE_GENERATED,
+            "video": CONTENT_TYPE_GENERATED,
+        }
+        content_type = type_map.get(args[1].lower(), CONTENT_TYPE_NEWS)
+
+    type_labels = {
+        CONTENT_TYPE_NEWS: "📰 AI Yangiliklar",
+        CONTENT_TYPE_PROMPT: "🎨 AI Prompt + Rasm",
+        CONTENT_TYPE_GENERATED: "🎬 AI Yaratgan Kontent",
+    }
+    await message.answer(
+        f"🔍 {type_labels.get(content_type, '')} qidirilmoqda..."
+    )
 
     from main import trigger_search
 
-    await trigger_search()
+    await trigger_search(content_type)
 
 
 @router.message(Command("history"))

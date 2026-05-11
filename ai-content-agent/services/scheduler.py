@@ -4,34 +4,49 @@ import logging
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 
-from config import Config
+from config import CONTENT_TYPE_NEWS, Config
 
 logger = logging.getLogger(__name__)
 
 
 class ContentScheduler:
-    """Belgilangan vaqtlarda kontent qidirish scheduleri."""
+    """Belgilangan vaqtlarda kontent qidirish scheduleri.
+
+    Har bir soatda turli kontent turi qidiriladi:
+    - 10:00 = AI yangiliklar (modellar, texnologiyalar)
+    - 13:00 = AI prompt + rasm
+    - 18:00 = AI yaratgan kontent (video/rasm + prompt)
+    """
 
     def __init__(self):
         self.scheduler = AsyncIOScheduler()
         self._search_callback = None
         self._is_searching = False
-        self._last_approved_time: datetime.datetime | None = None
+        self._last_approved_times: dict[str, datetime.datetime] = {}
 
     def set_search_callback(self, callback):
-        """Qidiruv funksiyasini belgilash."""
+        """Qidiruv funksiyasini belgilash.
+
+        Callback signature: async def callback(content_type: str)
+        """
         self._search_callback = callback
 
     def start(self):
         """Schedulerni ishga tushirish."""
         for hour in Config.SCHEDULE_HOURS:
+            content_type = Config.SCHEDULE_CONTENT_MAP.get(
+                hour, CONTENT_TYPE_NEWS
+            )
             self.scheduler.add_job(
                 self._trigger_search,
                 CronTrigger(hour=hour, minute=0),
                 id=f"search_{hour}",
+                args=[hour, content_type],
                 replace_existing=True,
             )
-            logger.info(f"Jadval qo'shildi: har kuni soat {hour}:00")
+            logger.info(
+                f"Jadval qo'shildi: soat {hour}:00 -> {content_type}"
+            )
 
         self.scheduler.start()
         logger.info("Scheduler ishga tushdi")
@@ -41,57 +56,41 @@ class ContentScheduler:
         if self.scheduler.running:
             self.scheduler.shutdown()
 
-    async def _trigger_search(self):
+    async def _trigger_search(self, hour: int, content_type: str):
         """Belgilangan vaqtda qidiruv boshlash."""
         if self._is_searching:
             logger.info("Qidiruv allaqachon davom etmoqda, o'tkazib yuborildi")
             return
 
-        now = datetime.datetime.utcnow()
-        if self._last_approved_time:
-            next_scheduled = self._get_next_scheduled_time(
-                self._last_approved_time
-            )
-            if now < next_scheduled:
+        last_approved = self._last_approved_times.get(content_type)
+        if last_approved:
+            today = datetime.datetime.utcnow().date()
+            if last_approved.date() == today:
                 logger.info(
-                    f"Keyingi jadval vaqti: {next_scheduled}, hozir o'tkaziladi"
+                    f"{content_type} bugun allaqachon tasdiqlangan, o'tkaziladi"
                 )
                 return
 
         self._is_searching = True
-        logger.info("Avtomatik kontent qidirish boshlandi")
+        logger.info(
+            f"Avtomatik qidiruv boshlandi: soat {hour}:00, tur: {content_type}"
+        )
 
         try:
             if self._search_callback:
-                await self._search_callback()
+                await self._search_callback(content_type)
         except Exception as e:
             logger.error(f"Qidiruv xatosi: {e}")
         finally:
             self._is_searching = False
 
-    def _get_next_scheduled_time(
-        self, after: datetime.datetime
-    ) -> datetime.datetime:
-        """Keyingi jadval vaqtini hisoblash."""
-        today = after.date()
-        for hour in sorted(Config.SCHEDULE_HOURS):
-            scheduled = datetime.datetime.combine(
-                today, datetime.time(hour=hour)
-            )
-            if scheduled > after:
-                return scheduled
-
-        tomorrow = today + datetime.timedelta(days=1)
-        first_hour = min(Config.SCHEDULE_HOURS)
-        return datetime.datetime.combine(
-            tomorrow, datetime.time(hour=first_hour)
-        )
-
-    def mark_approved(self):
-        """Tasdiqlangandan keyin keyingi jadvalgacha qidirmaslik."""
-        self._last_approved_time = datetime.datetime.utcnow()
+    def mark_approved(self, content_type: str = CONTENT_TYPE_NEWS):
+        """Tasdiqlangandan keyin shu kontent turi uchun bugungi qidiruvni to'xtatish."""
+        self._last_approved_times[content_type] = datetime.datetime.utcnow()
         self._is_searching = False
-        logger.info("Kontent tasdiqlandi, keyingi jadvalgacha kutiladi")
+        logger.info(
+            f"{content_type} tasdiqlandi, bugun uchun to'xtatildi"
+        )
 
     def mark_rejected(self):
         """Rad etilganda qayta qidirish imkoniyati."""
@@ -105,17 +104,32 @@ class ContentScheduler:
                 self.scheduler.remove_job(job.id)
 
         for hour in hours:
+            content_type = Config.SCHEDULE_CONTENT_MAP.get(
+                hour, CONTENT_TYPE_NEWS
+            )
             self.scheduler.add_job(
                 self._trigger_search,
                 CronTrigger(hour=hour, minute=0),
                 id=f"search_{hour}",
+                args=[hour, content_type],
                 replace_existing=True,
             )
         logger.info(f"Jadval yangilandi: {hours}")
 
     def get_schedule_info(self) -> str:
         """Joriy jadval ma'lumotlari."""
-        hours = sorted(Config.SCHEDULE_HOURS)
-        schedule_text = ", ".join(f"{h}:00" for h in hours)
-        status = "qidirmoqda" if self._is_searching else "kutmoqda"
-        return f"Jadval: {schedule_text}\nHolat: {status}"
+        lines = []
+        for hour in sorted(Config.SCHEDULE_HOURS):
+            content_type = Config.SCHEDULE_CONTENT_MAP.get(
+                hour, CONTENT_TYPE_NEWS
+            )
+            type_label = {
+                "ai_news": "📰 AI Yangiliklar",
+                "ai_prompt": "🎨 AI Prompt + Rasm",
+                "ai_generated": "🎬 AI Yaratgan Kontent",
+            }.get(content_type, content_type)
+            lines.append(f"  {hour}:00 → {type_label}")
+
+        schedule_text = "\n".join(lines)
+        status = "🔍 qidirmoqda" if self._is_searching else "⏳ kutmoqda"
+        return f"📅 Jadval:\n{schedule_text}\n\nHolat: {status}"

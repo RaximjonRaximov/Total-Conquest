@@ -39,6 +39,8 @@ class ContentPost(Base):
     status = Column(String(50), default="pending")
     # Qayerdan kelgan: auto (scheduler) yoki manual (foydalanuvchi)
     origin = Column(String(50), default="auto")
+    # Kontent turi: ai_news, ai_prompt, ai_generated
+    content_type = Column(String(50), default="ai_news")
     # Qaysi platformalarga yuborilgan
     published_telegram = Column(Boolean, default=False)
     published_instagram = Column(Boolean, default=False)
