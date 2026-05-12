@@ -706,97 +706,7 @@ const TROOP_DATA = {
     },
 
     // ════════════════════════════════════════════════
-    // QAHRAMON — Hero (bitta, kuchli, tiklanadi)
-    // ════════════════════════════════════════════════
-
-    commander: {
-        name: 'Qo\'mondon',
-        icon: '👑',
-        category: 'qahramon',
-        tier: 5,
-        unlockBarracks: 8,
-        isHero: true,
-        heroRegenTime: 3600,
-        cost: { gold: 5000 },
-        time: 0,
-        flying: false,
-        avoidTraps: true,
-        targetPriority: 'defense',
-        attackStyle: 'melee',
-        stats: {
-            hp: 5000,
-            damage: 200,
-            speed: 1.2,
-            range: 1.5,
-            type: 'melee',
-            capacity: 20,
-            aura: true,
-            auraRadius: 4,
-            auraDamageBonus: 0.20,
-        },
-        specialAbility: {
-            id: 'battle_cry',
-            name: 'Jang Nidosi',
-            description: '4 tile radius ichidagi askarlarga +60% zarar, +40% tezlik (3 soniya).',
-            passive: false,
-            cooldown: 45000,
-            radius: 4,
-            damageBuff: 0.60,
-            speedBuff: 0.40,
-            duration: 3000,
-        },
-        strengths:    ['Eng kuchli askar', 'Yaqin askarlar +20% kuch', 'Tuzoqdan o\'tadi', 'Tiklanadi'],
-        weaknesses:   ['1 ta marta deploy', 'Tiklanishga vaqt kerak', 'Ko\'p sig\'im'],
-        counters:     ['archerTower', 'flamingCitadel'],
-        counteredBy:  [],
-        description: 'Qo\'shin qo\'mondoni. Eng kuchli askar — faqat 1 deploy, tiklanadi. Jang Nidosi: 4 tile buff.',
-    },
-
-    sagittaria: {
-        name: 'Sagittaria',
-        icon: '🏹',
-        category: 'qahramon',
-        tier: 5,
-        unlockBarracks: 10,  // TH 7+ kerak
-        isHero: true,
-        heroRegenTime: 2400,  // 40 daqiqa
-        cost: { gold: 8000, food: 3000 },
-        time: 0,
-        flying: false,
-        avoidTraps: true,
-        targetPriority: 'defense',
-        attackStyle: 'ranged',
-        stats: {
-            hp: 3500,
-            damage: 300,
-            speed: 1.0,
-            range: 5.0,
-            type: 'ranged',
-            capacity: 20,
-            aura: true,
-            auraRadius: 5,
-            auraRangeBonus: 0.25,
-        },
-        specialAbility: {
-            id: 'arrow_rain',
-            name: "O'q Yomg'iri",
-            description: '5 tile radius ichidagi binolarga 8 zarba (100 zarar har biri) 4 soniya davomida.',
-            passive: false,
-            cooldown: 55000,
-            radius: 5,
-            shots: 8,
-            damagePerShot: 100,
-            duration: 4000,
-        },
-        strengths:    ['Uzoq masofadan hujum', 'Otishmalar +25% diapazon', 'Tez tiklanadi', 'Yuqori DMG'],
-        weaknesses:   ['1 ta marta deploy', 'HP commanderdan kam', 'Ko\'p sig\'im'],
-        counters:     ['catapult', 'archerTower'],
-        counteredBy:  ['cavalry'],
-        description: 'Kamon Ustasi. Uzoqdan otadi. Otishmalarga +25% range. O\'q Yomg\'iri: 8x100 zarar.',
-    },
-
-    // ════════════════════════════════════════════════
-    // 4 TA YANGI QAHRAMON (haykal orqali ochiladi)
+    // QAHRAMON — Hero (haykal orqali ochiladi)
     // ════════════════════════════════════════════════
 
     legatus: {
@@ -1076,9 +986,7 @@ const TROOP_CATEGORIES = {
 const TROOP_COLORS = {
     thunderbird:        '#ffeb3b',
     gladiator:          '#ef9a9a',
-    commander:          '#ffd700',
-    sagittaria:         '#69f0ae',
-    // Yangi askarlar
+    // Askarlar
     testudo:            '#90a4ae',
     ballistarius:       '#ff8a65',
     retiarius:          '#ce93d8',

@@ -563,14 +563,14 @@ const DeployPanel = {
 
     useHeroAbility(heroType) {
         if (typeof HeroSystem === 'undefined') return;
-        const ht = heroType || 'commander';
+        const ht = heroType || 'legatus';
         const hero = BattleManager.troops.find(t => t.type === ht && t.hp > 0);
         if (!hero) { Toast.show(`${TROOP_DATA[ht]?.name || 'Qahramon'} jangda emas!`, 'warn'); return; }
         HeroSystem.useAbility(ht, hero.x, hero.y);
     },
 
     // Backward compat
-    useCommanderAbility() { this.useHeroAbility('commander'); },
+    useCommanderAbility() { this.useHeroAbility('legatus'); },
 
     // ── Yangi yulduz qo'shilganda katta animatsiya ───────────────────────────
     _triggerStarBurst(starCount) {

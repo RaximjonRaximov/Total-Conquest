@@ -169,7 +169,7 @@ const BattleLogPanel = {
         // Troop category colors
         const CAT_COLORS = {
             piyoda: '#ef5350', otishma: '#66bb6a', otliq: '#ce93d8',
-            qamal: '#ffb74d', uchuvchi: '#42a5f5', commander: '#ffd700',
+            qamal: '#ffb74d', uchuvchi: '#42a5f5', qahramon: '#ffd700',
         };
 
         // Group by type for legend
@@ -356,7 +356,7 @@ const BattleLogPanel = {
             const cat = td?.category;
             const colors = {
                 piyoda:'#ef5350', otishma:'#66bb6a', otliq:'#ce93d8',
-                qamal:'#ffb74d', uchuvchi:'#42a5f5', commander:'#ffd700',
+                qamal:'#ffb74d', uchuvchi:'#42a5f5', qahramon:'#ffd700',
             };
             r.activeMarkers.push({
                 wx: ev.x, wy: ev.y,

@@ -51,21 +51,7 @@ const HERO_CONFIG = {
         abilityKey: 'imperium',
         abilityCooldown: 60000,
     },
-    // Eski qahramonlar — muvofiqlik uchun saqlanadi
-    commander: {
-        statueType: null,           // Haykal kerak emas (eski tizim)
-        thRequired: 1,
-        regenBase: 3600,
-        abilityKey: 'battle_cry',
-        abilityCooldown: 45000,
-    },
-    sagittaria: {
-        statueType: null,
-        thRequired: 1,
-        regenBase: 2400,
-        abilityKey: 'arrow_rain',
-        abilityCooldown: 55000,
-    },
+
 };
 
 const HeroSystem = {
@@ -95,19 +81,7 @@ const HeroSystem = {
             sleeping: false,
             sleepUntil: 0,
         },
-        // Eski qahramonlar
-        commander: {
-            level: 1,
-            xp: 0,
-            sleeping: false,
-            sleepUntil: 0,
-        },
-        sagittaria: {
-            level: 1,
-            xp: 0,
-            sleeping: false,
-            sleepUntil: 0,
-        },
+
     },
 
     init() {
@@ -123,12 +97,6 @@ const HeroSystem = {
         for (const [heroKey, cfg] of Object.entries(HERO_CONFIG)) {
             // TH talabini tekshir
             if (thLevel < cfg.thRequired) continue;
-
-            // Haykal kerak bo'lmagan eski qahramonlar
-            if (cfg.statueType === null) {
-                active.push(heroKey);
-                continue;
-            }
 
             // Haykal qurilganmi?
             const statueBuilt = this._isStatueBuilt(cfg.statueType);
@@ -271,7 +239,7 @@ const HeroSystem = {
     _abilityUsedAt: {},
 
     canUseAbility(heroKey) {
-        const ht = heroKey || 'commander';
+        const ht = heroKey || 'legatus';
         const cfg = HERO_CONFIG[ht];
         const cd  = cfg?.abilityCooldown || 45000;
         const last = this._abilityUsedAt[ht] || 0;
@@ -279,7 +247,7 @@ const HeroSystem = {
     },
 
     getAbilityCooldownLeft(heroKey) {
-        const ht  = heroKey || 'commander';
+        const ht  = heroKey || 'legatus';
         const cfg = HERO_CONFIG[ht];
         const cd  = cfg?.abilityCooldown || 45000;
         const last = this._abilityUsedAt[ht] || 0;
@@ -287,7 +255,7 @@ const HeroSystem = {
     },
 
     getAbilityInfo(heroKey) {
-        const ht = heroKey || 'commander';
+        const ht = heroKey || 'legatus';
         const troop = typeof TROOP_DATA !== 'undefined' ? TROOP_DATA[ht] : null;
         const ab = troop?.specialAbility;
         const defaults = {
@@ -295,8 +263,7 @@ const HeroSystem = {
             aquilifer:        { name: 'Burgut Nishoni',     icon: '🦅', color: '#78909c' },
             praetorian_guard: { name: 'Tosh Qalqon',        icon: '🛡️', color: '#546e7a' },
             imperatrix:       { name: "Imperium G'oyati",   icon: '⚜️', color: '#ffd700' },
-            commander:        { name: 'Jang Nidosi',        icon: '👑', color: '#ffd700' },
-            sagittaria:       { name: "O'q Yomg'iri",       icon: '🏹', color: '#69f0ae' },
+
         };
         return defaults[ht] || { name: ab?.name || 'Qobiliyat', icon: '⚡', color: '#fff' };
     },
@@ -307,7 +274,7 @@ const HeroSystem = {
         if (typeof heroKeyOrX === 'string') {
             heroKey = heroKeyOrX; x = xOrY; y = yArg;
         } else {
-            heroKey = 'commander'; x = heroKeyOrX; y = xOrY;
+            heroKey = 'legatus'; x = heroKeyOrX; y = xOrY;
         }
 
         if (!this.canUseAbility(heroKey)) {
@@ -323,8 +290,7 @@ const HeroSystem = {
             case 'aquilifer':        return this._useAquiliferAbility(x, y);
             case 'praetorian_guard': return this._usePraetorianAbility(x, y);
             case 'imperatrix':       return this._useImperatrixAbility(x, y);
-            case 'sagittaria':       return this._useSagittariaAbility(x, y);
-            default:                 return this._useCommanderAbility(x, y);
+            default:                 return this._useLegatusAbility(x, y);
         }
     },
 
@@ -462,69 +428,6 @@ const HeroSystem = {
         if (typeof Toast !== 'undefined')
             Toast.show(`⚜️ Imperium G'oyati! ${healed} ta askar tiklanib, ${raged} ta rage oldi!`, 'success', 3500);
         if (typeof AudioManager !== 'undefined') AudioManager.playSuccess?.();
-        return true;
-    },
-
-    // ── Commander (eski): "Jang Nidosi" ──────────────────────────────────
-    _useCommanderAbility(x, y) {
-        const BUFF_RADIUS = 4;
-        const BUFF_DMG    = 0.6;
-        const BUFF_SPD    = 0.4;
-        const BUFF_DUR    = 3000;
-        let buffed = 0;
-        if (typeof BattleManager !== 'undefined') {
-            for (const t of BattleManager.troops) {
-                if (Math.hypot(t.x - x, t.y - y) <= BUFF_RADIUS) {
-                    t._abilityBuff = { dmg: BUFF_DMG, spd: BUFF_SPD, until: Date.now() + BUFF_DUR };
-                    buffed++;
-                }
-            }
-        }
-        this._visualBurst(x, y, '#ffd700', 30);
-        if (typeof BattleRenderer !== 'undefined') {
-            BattleRenderer.addExplosion?.(x, y, '#ff9800', 20);
-            BattleRenderer.triggerShake?.(8, 300);
-        }
-        if (typeof Toast !== 'undefined')
-            Toast.show(`👑 Jang Nidosi! ${buffed} ta askar kuchaydi!`, 'success', 2500);
-        return true;
-    },
-
-    // ── Sagittaria (eski): "O'q Yomg'iri" ────────────────────────────────
-    _useSagittariaAbility(x, y) {
-        const SHOT_RADIUS  = 5;
-        const SHOTS        = 8;
-        const DMG_PER_SHOT = 100;
-        let hit = 0;
-        if (typeof BattleManager !== 'undefined') {
-            for (const b of Object.values(BuildingManager.buildings)) {
-                if (!b || b.hp <= 0) continue;
-                if (Math.hypot(b.x - x, b.y - y) <= SHOT_RADIUS) {
-                    const bId = b.id;
-                    for (let i = 0; i < SHOTS; i++) {
-                        setTimeout(() => {
-                            const target = BuildingManager.buildings[bId];
-                            if (target && target.hp > 0) {
-                                BattleManager._damageBuilding(bId, DMG_PER_SHOT);
-                            }
-                        }, i * 500);
-                    }
-                    hit++;
-                }
-            }
-        }
-        for (let i = 0; i < 12; i++) {
-            const angle = (i / 12) * Math.PI * 2;
-            const tx = x + Math.cos(angle) * SHOT_RADIUS;
-            const ty = y + Math.sin(angle) * SHOT_RADIUS;
-            setTimeout(() => {
-                if (typeof BattleRenderer !== 'undefined')
-                    BattleRenderer.addExplosion?.(tx, ty, '#69f0ae', 12);
-            }, i * 80);
-        }
-        this._visualBurst(x, y, '#00e676', 25);
-        if (typeof Toast !== 'undefined')
-            Toast.show(`🏹 O'q Yomg'iri! ${hit} ta bino zarbga uchradi!`, 'success', 2500);
         return true;
     },
 

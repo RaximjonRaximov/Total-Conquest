@@ -454,11 +454,14 @@ const BattlePanel = {
             : '';
 
         // ── Hero aura row ─────────────────────────────────────────────────────
-        const heroLv = (typeof HeroSystem !== 'undefined' && HeroSystem.commanders.commander?.level) || 0;
+        const activeHeroes = typeof HeroSystem !== 'undefined' ? HeroSystem.getActiveHeroes() : [];
+        const firstHero = activeHeroes.length > 0 ? activeHeroes[0] : null;
+        const heroLv = firstHero && HeroSystem.commanders[firstHero] ? HeroSystem.commanders[firstHero].level : 0;
         const heroAura = typeof r.heroAura === 'number' ? r.heroAura : 1;
+        const heroName = firstHero && typeof TROOP_DATA !== 'undefined' && TROOP_DATA[firstHero] ? TROOP_DATA[firstHero].name : 'Qahramon';
         const heroRow = heroLv > 0 && heroAura > 1
             ? `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
-                   <span style="color:#ffd700;font-size:11px;">👑 Qo'mondon Aura (Lv${heroLv})</span>
+                   <span style="color:#ffd700;font-size:11px;">🦁 ${heroName} Aura (Lv${heroLv})</span>
                    <span style="color:#ffd700;font-size:11px;font-weight:800;">+${Math.round((heroAura-1)*100)}% kuch</span>
                </div>`
             : '';
@@ -540,7 +543,7 @@ const BattlePanel = {
         // Armiya tarkibi (emoji strip)
         const catColors = {
             piyoda: '#ef5350', otishma: '#66bb6a', otliq: '#ce93d8',
-            qamal: '#ffb74d', uchuvchi: '#42a5f5', commander: '#ffd700',
+            qamal: '#ffb74d', uchuvchi: '#42a5f5', qahramon: '#ffd700',
         };
 
         // Kuch hisoblash

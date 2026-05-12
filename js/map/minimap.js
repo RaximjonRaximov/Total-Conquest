@@ -93,7 +93,7 @@ const Minimap = {
                 const mx2 = (t.x / Grid.SIZE) * mw;
                 const my2 = (t.y / Grid.SIZE) * mh;
                 const r2 = Math.max(2, tw * 1.2);
-                const isHero = t.type === 'commander';
+                const isHero = td?.category === 'qahramon';
                 const pulse = 0.7 + Math.sin(now * 0.01) * 0.3;
                 this.ctx.fillStyle = isHero
                     ? `rgba(255,215,0,${pulse})`
