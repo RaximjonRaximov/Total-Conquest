@@ -1,27 +1,15 @@
 {
-  "name": "total-conquest",
-  "version": "1.0.0",
-  "description": "> **Maqsad:** Total Conquest (Rim imperiyasi) darajasidagi professional strategiya o'yinini yaratish. > **Eslatma:** Har bir qism HAQIQIY PROFESSIONAL (WebGL, Phaser/Pixi, Sprite'lar, Mukammal AI) darajada qilingandan keyingina (✅) bilan belgilanadi. Yuzaki (emoji yoki oddiy shakllar) bilan qilingan narsalar qabul qilinmaydi!",
-  "main": "index.js",
+  "name": "infinite-tower",
+  "version": "0.1.0",
+  "description": "Infinite Tower — hero-squad tower campaign mobile game (HTML5).",
+  "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --host",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview --host"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/RaximjonRaximov/Total-Conquest.git"
-  },
-  "keywords": [],
-  "author": "",
   "license": "ISC",
-  "type": "commonjs",
-  "bugs": {
-    "url": "https://github.com/RaximjonRaximov/Total-Conquest/issues"
-  },
-  "homepage": "https://github.com/RaximjonRaximov/Total-Conquest#readme",
-  "dependencies": {
-    "phaser": "^4.1.0",
-    "vite": "^8.0.10"
+  "devDependencies": {
+    "vite": "^5.4.10"
   }
 }
