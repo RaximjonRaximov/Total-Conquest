@@ -1,13 +1,17 @@
-// Infinite Tower — entry point
-// Step 1: loading screen with banner + animated 0 -> 100 progress bar.
+// Infinite Tower — entry point.
+// Loading screen -> on START, launch the Phaser kingdom scene.
 
 import { runLoadingScreen } from "./loading.js";
+import { startGame } from "./game/index.js";
 
 window.addEventListener("DOMContentLoaded", () => {
   runLoadingScreen({
     onComplete: () => {
-      // Next steps (menu / game) will be wired here later.
-      console.log("[Infinite Tower] loading complete — ready to start");
+      const loading = document.getElementById("loading-screen");
+      const game = document.getElementById("game");
+      if (loading) loading.style.display = "none";
+      if (game) game.hidden = false;
+      startGame();
     },
   });
 });

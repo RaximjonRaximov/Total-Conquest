@@ -1,0 +1,129 @@
+import Phaser from "phaser";
+import { TILE, buildKingdom } from "./tiles.js";
+import { buildProps } from "./layout.js";
+import { Joystick } from "./joystick.js";
+import atlas from "../world/atlas.json";
+
+const MAP_W = 40;
+const MAP_H = 40;
+const SPEED = 170;
+const KNIGHT_SCALE = 0.46;
+
+export default class KingdomScene extends Phaser.Scene {
+  constructor() {
+    super("Kingdom");
+  }
+
+  preload() {
+    this.load.image("tiles", "/assets/img/tiles.png");
+    this.load.atlas("props", "/assets/img/props.png", "/assets/img/props.json");
+    this.load.spritesheet("knight", "/assets/img/knight.png", {
+      frameWidth: 101,
+      frameHeight: 160,
+    });
+  }
+
+  create() {
+    const world = buildKingdom(MAP_W, MAP_H);
+
+    const map = this.make.tilemap({
+      data: world.ground,
+      tileWidth: TILE,
+      tileHeight: TILE,
+    });
+    const tileset = map.addTilesetImage("tiles");
+    map.createLayer(0, tileset, 0, 0);
+
+    const decorMap = this.make.tilemap({
+      data: world.decor,
+      tileWidth: TILE,
+      tileHeight: TILE,
+    });
+    const decorTs = decorMap.addTilesetImage("tiles");
+    decorMap.createLayer(0, decorTs, 0, 0);
+
+    const worldW = MAP_W * TILE;
+    const worldH = MAP_H * TILE;
+    this.physics.world.setBounds(0, 0, worldW, worldH);
+    this.cameras.main.setBounds(0, 0, worldW, worldH);
+
+    // props (with collision bodies for solid ones)
+    this.solids = this.physics.add.staticGroup();
+    const props = buildProps(world, MAP_W, MAP_H);
+    for (const p of props) {
+      const frame = atlas.frames[p.name];
+      if (!frame) continue;
+      const spr = this.add.image(p.x, p.y, "props", p.name).setOrigin(0.5, 1);
+      spr.setDepth(p.y);
+      if (frame.solid) {
+        const bw = frame.w * 0.7;
+        const bh = Math.min(frame.h * 0.32, 46);
+        const body = this.solids.create(p.x, p.y - bh / 2, null)
+          .setVisible(false);
+        body.body.setSize(bw, bh);
+        body.body.updateFromGameObject();
+      }
+    }
+
+    // player
+    this.createAnims();
+    const start = { x: world.center.x * TILE, y: (world.center.y + 4) * TILE };
+    this.player = this.physics.add.sprite(start.x, start.y, "knight", 1)
+      .setOrigin(0.5, 1)
+      .setScale(KNIGHT_SCALE);
+    this.player.body.setSize(46, 26).setOffset(27, 128);
+    this.player.setCollideWorldBounds(true);
+    this.physics.add.collider(this.player, this.solids);
+
+    this.cameras.main.startFollow(this.player, true, 0.12, 0.12);
+    this.cameras.main.setZoom(1.1);
+
+    this.cursors = this.input.keyboard.createCursorKeys();
+    this.keys = this.input.keyboard.addKeys("W,A,S,D");
+    this.joystick = new Joystick(this);
+    this.facing = "down";
+  }
+
+  createAnims() {
+    const a = this.anims;
+    const mk = (key, frames) =>
+      a.create({ key, frames: a.generateFrameNumbers("knight", { frames }), frameRate: 9, repeat: -1 });
+    mk("walk-down", [0, 1, 2, 1]);
+    mk("walk-up", [3, 4, 5, 4]);
+    mk("walk-side", [6, 7, 8, 7]);
+  }
+
+  update() {
+    const dir = new Phaser.Math.Vector2(0, 0);
+    if (this.cursors.left.isDown || this.keys.A.isDown) dir.x -= 1;
+    if (this.cursors.right.isDown || this.keys.D.isDown) dir.x += 1;
+    if (this.cursors.up.isDown || this.keys.W.isDown) dir.y -= 1;
+    if (this.cursors.down.isDown || this.keys.S.isDown) dir.y += 1;
+    dir.add(this.joystick.vector);
+    if (dir.length() > 1) dir.normalize();
+
+    this.player.setVelocity(dir.x * SPEED, dir.y * SPEED);
+    this.player.setDepth(this.player.y);
+
+    const moving = dir.length() > 0.1;
+    if (moving) {
+      if (Math.abs(dir.x) > Math.abs(dir.y)) {
+        this.player.setFlipX(dir.x < 0);
+        this.player.anims.play("walk-side", true);
+        this.facing = dir.x < 0 ? "left" : "right";
+      } else if (dir.y < 0) {
+        this.player.setFlipX(false);
+        this.player.anims.play("walk-up", true);
+        this.facing = "up";
+      } else {
+        this.player.setFlipX(false);
+        this.player.anims.play("walk-down", true);
+        this.facing = "down";
+      }
+    } else {
+      this.player.anims.stop();
+      const idle = { down: 1, up: 4, left: 7, right: 7 }[this.facing];
+      this.player.setFrame(idle);
+    }
+  }
+}

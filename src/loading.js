@@ -1,17 +1,20 @@
-// Loading screen logic: animate progress 0 -> 100 while "loading" assets,
-// then reveal the start button.
+// Loading screen: a knight runs along a pixel progress bar from 0 -> 100
+// while real assets preload, then the start button appears.
 
 const TIPS = [
-  "Yuklanmoqda...",
-  "Minora qavatlari tayyorlanmoqda...",
-  "Qahramonlar chaqirilmoqda...",
-  "Xaritalar yuklanmoqda...",
-  "Deyarli tayyor...",
+  "Loading...",
+  "Forging the realm...",
+  "Arming the knight...",
+  "Raising the tower...",
+  "Almost ready...",
 ];
 
-// Assets the game will preload. For step 1 we only have the banner;
-// more (sprites, audio) get added here as the game grows.
-const ASSETS = ["/assets/img/banner.svg"];
+// Real assets to preload. Each finished asset bumps the progress target.
+const ASSETS = [
+  "/assets/img/bg.png",
+  "/assets/img/banner.png",
+  "/assets/img/knight_sheet.png",
+];
 
 function preloadImage(src) {
   return new Promise((resolve) => {
@@ -25,13 +28,13 @@ export function runLoadingScreen({ onComplete } = {}) {
   const fill = document.getElementById("progress-fill");
   const percentEl = document.getElementById("loading-percent");
   const tipEl = document.getElementById("loading-tip");
+  const knight = document.getElementById("knight");
   const startBtn = document.getElementById("start-btn");
 
   let displayed = 0; // value shown on screen (0..100)
-  let target = 0; // value we are easing toward
+  let target = 0; // value we ease toward as assets finish
   let assetsDone = false;
 
-  // Kick off real asset preloading; each finished asset bumps the target.
   const step = 100 / (ASSETS.length + 1); // +1 reserved for "finalize"
   Promise.all(
     ASSETS.map((src) =>
@@ -43,22 +46,24 @@ export function runLoadingScreen({ onComplete } = {}) {
     assetsDone = true;
   });
 
-  // Smoothly animate the bar. The bar creeps forward on its own so it never
-  // looks stuck, but it can't pass `target` until real work is done.
+  function render(pct) {
+    fill.style.width = pct + "%";
+    percentEl.textContent = pct + "%";
+    knight.style.left = pct + "%";
+    const i = Math.min(TIPS.length - 1, Math.floor((pct / 100) * TIPS.length));
+    if (tipEl.textContent !== TIPS[i]) tipEl.textContent = TIPS[i];
+  }
+
   function tick() {
-    // Let the bar drift up to near the current target.
-    const ceiling = assetsDone ? 100 : Math.max(target, displayed + 0.4);
+    // Bar creeps forward so it never looks stuck, but can't pass `target`
+    // until the real work is done.
+    const ceiling = assetsDone ? 100 : Math.max(target, displayed + 0.3);
     if (displayed < ceiling) {
-      const speed = displayed < 80 ? 0.9 : 0.45;
+      const speed = displayed < 80 ? 0.8 : 0.4;
       displayed = Math.min(ceiling, displayed + speed);
     }
 
-    const pct = Math.round(displayed);
-    fill.style.width = pct + "%";
-    percentEl.textContent = pct + "%";
-
-    const tipIndex = Math.min(TIPS.length - 1, Math.floor((displayed / 100) * TIPS.length));
-    if (tipEl.textContent !== TIPS[tipIndex]) tipEl.textContent = TIPS[tipIndex];
+    render(Math.round(displayed));
 
     if (displayed >= 100) {
       finish();
@@ -68,9 +73,9 @@ export function runLoadingScreen({ onComplete } = {}) {
   }
 
   function finish() {
-    fill.style.width = "100%";
-    percentEl.textContent = "100%";
-    tipEl.textContent = "Tayyor!";
+    render(100);
+    tipEl.textContent = "Ready!";
+    knight.style.animationPlayState = "paused";
     startBtn.hidden = false;
     startBtn.addEventListener(
       "click",

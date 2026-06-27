@@ -1,0 +1,355 @@
+{
+  "image": "/assets/img/props.png",
+  "frames": {
+    "tower": {
+      "x": 0,
+      "y": 0,
+      "w": 137,
+      "h": 261,
+      "solid": true
+    },
+    "house_blue": {
+      "x": 139,
+      "y": 0,
+      "w": 211,
+      "h": 225,
+      "solid": true
+    },
+    "house_red": {
+      "x": 352,
+      "y": 0,
+      "w": 187,
+      "h": 214,
+      "solid": true
+    },
+    "house_green": {
+      "x": 541,
+      "y": 0,
+      "w": 197,
+      "h": 211,
+      "solid": true
+    },
+    "house_yellow": {
+      "x": 740,
+      "y": 0,
+      "w": 185,
+      "h": 198,
+      "solid": true
+    },
+    "tent_big": {
+      "x": 0,
+      "y": 263,
+      "w": 142,
+      "h": 134,
+      "solid": true
+    },
+    "tree_dead2": {
+      "x": 144,
+      "y": 263,
+      "w": 52,
+      "h": 132,
+      "solid": true
+    },
+    "tree_oak": {
+      "x": 198,
+      "y": 263,
+      "w": 125,
+      "h": 131,
+      "solid": true
+    },
+    "tree_oak2": {
+      "x": 325,
+      "y": 263,
+      "w": 126,
+      "h": 130,
+      "solid": true
+    },
+    "well": {
+      "x": 453,
+      "y": 263,
+      "w": 109,
+      "h": 127,
+      "solid": true
+    },
+    "stall_fruit": {
+      "x": 564,
+      "y": 263,
+      "w": 144,
+      "h": 127,
+      "solid": true
+    },
+    "stall_bread": {
+      "x": 710,
+      "y": 263,
+      "w": 140,
+      "h": 127,
+      "solid": true
+    },
+    "stall_potion": {
+      "x": 852,
+      "y": 263,
+      "w": 137,
+      "h": 127,
+      "solid": true
+    },
+    "tent_small": {
+      "x": 0,
+      "y": 399,
+      "w": 146,
+      "h": 127,
+      "solid": true
+    },
+    "tree_dead": {
+      "x": 148,
+      "y": 399,
+      "w": 72,
+      "h": 124,
+      "solid": true
+    },
+    "sign_post": {
+      "x": 222,
+      "y": 399,
+      "w": 75,
+      "h": 118,
+      "solid": true
+    },
+    "tree_pine": {
+      "x": 299,
+      "y": 399,
+      "w": 66,
+      "h": 118,
+      "solid": true
+    },
+    "bridge_wood": {
+      "x": 367,
+      "y": 399,
+      "w": 150,
+      "h": 114,
+      "solid": false
+    },
+    "tree_pine3": {
+      "x": 519,
+      "y": 399,
+      "w": 62,
+      "h": 114,
+      "solid": true
+    },
+    "sign_hanging": {
+      "x": 583,
+      "y": 399,
+      "w": 75,
+      "h": 113,
+      "solid": true
+    },
+    "bridge_stone": {
+      "x": 660,
+      "y": 399,
+      "w": 172,
+      "h": 109,
+      "solid": false
+    },
+    "tree_pine2": {
+      "x": 834,
+      "y": 399,
+      "w": 59,
+      "h": 103,
+      "solid": true
+    },
+    "pot": {
+      "x": 895,
+      "y": 399,
+      "w": 94,
+      "h": 101,
+      "solid": true
+    },
+    "notice_board": {
+      "x": 0,
+      "y": 528,
+      "w": 98,
+      "h": 96,
+      "solid": true
+    },
+    "campfire": {
+      "x": 100,
+      "y": 528,
+      "w": 97,
+      "h": 91,
+      "solid": true
+    },
+    "woodpile": {
+      "x": 199,
+      "y": 528,
+      "w": 124,
+      "h": 90,
+      "solid": false
+    },
+    "gate": {
+      "x": 325,
+      "y": 528,
+      "w": 111,
+      "h": 77,
+      "solid": true
+    },
+    "table": {
+      "x": 438,
+      "y": 528,
+      "w": 116,
+      "h": 67,
+      "solid": true
+    },
+    "rock_big": {
+      "x": 556,
+      "y": 528,
+      "w": 64,
+      "h": 65,
+      "solid": true
+    },
+    "stump_big": {
+      "x": 622,
+      "y": 528,
+      "w": 91,
+      "h": 64,
+      "solid": true
+    },
+    "logs": {
+      "x": 715,
+      "y": 528,
+      "w": 88,
+      "h": 64,
+      "solid": false
+    },
+    "fence_h": {
+      "x": 805,
+      "y": 528,
+      "w": 124,
+      "h": 61,
+      "solid": true
+    },
+    "fence_v": {
+      "x": 931,
+      "y": 528,
+      "w": 87,
+      "h": 60,
+      "solid": true
+    },
+    "stool": {
+      "x": 0,
+      "y": 626,
+      "w": 47,
+      "h": 59,
+      "solid": false
+    },
+    "barrel": {
+      "x": 49,
+      "y": 626,
+      "w": 43,
+      "h": 57,
+      "solid": true
+    },
+    "bush_red": {
+      "x": 94,
+      "y": 626,
+      "w": 69,
+      "h": 57,
+      "solid": false
+    },
+    "wall": {
+      "x": 165,
+      "y": 626,
+      "w": 61,
+      "h": 55,
+      "solid": true
+    },
+    "bush_blue": {
+      "x": 228,
+      "y": 626,
+      "w": 62,
+      "h": 55,
+      "solid": false
+    },
+    "lamp": {
+      "x": 292,
+      "y": 626,
+      "w": 38,
+      "h": 54,
+      "solid": true
+    },
+    "bush_pink": {
+      "x": 332,
+      "y": 626,
+      "w": 65,
+      "h": 54,
+      "solid": false
+    },
+    "sack": {
+      "x": 399,
+      "y": 626,
+      "w": 42,
+      "h": 53,
+      "solid": false
+    },
+    "bush_white": {
+      "x": 443,
+      "y": 626,
+      "w": 54,
+      "h": 51,
+      "solid": false
+    },
+    "log": {
+      "x": 499,
+      "y": 626,
+      "w": 104,
+      "h": 51,
+      "solid": false
+    },
+    "bush": {
+      "x": 605,
+      "y": 626,
+      "w": 56,
+      "h": 48,
+      "solid": false
+    },
+    "rock": {
+      "x": 663,
+      "y": 626,
+      "w": 64,
+      "h": 48,
+      "solid": false
+    },
+    "rocks": {
+      "x": 729,
+      "y": 626,
+      "w": 74,
+      "h": 48,
+      "solid": false
+    },
+    "grass_tuft": {
+      "x": 805,
+      "y": 626,
+      "w": 38,
+      "h": 47,
+      "solid": false
+    },
+    "rock_small": {
+      "x": 845,
+      "y": 626,
+      "w": 56,
+      "h": 44,
+      "solid": false
+    },
+    "stump": {
+      "x": 903,
+      "y": 626,
+      "w": 48,
+      "h": 44,
+      "solid": false
+    },
+    "bucket": {
+      "x": 953,
+      "y": 626,
+      "w": 44,
+      "h": 42,
+      "solid": false
+    }
+  }
+}
