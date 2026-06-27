@@ -34,6 +34,7 @@ export default class KingdomScene extends Phaser.Scene {
     const tileset = map.addTilesetImage("tiles");
     map.createLayer(0, tileset, 0, 0);
 
+    // decor layer (above ground, but solid objects like houses/trees check this for tiles)
     const decorMap = this.make.tilemap({
       data: world.decor,
       tileWidth: TILE,
@@ -49,6 +50,20 @@ export default class KingdomScene extends Phaser.Scene {
 
     // props (with collision bodies for solid ones)
     this.solids = this.physics.add.staticGroup();
+    
+    // Water collision: Add invisible solid blocks for water tiles
+    for (let y = 0; y < MAP_H; y++) {
+      for (let x = 0; x < MAP_W; x++) {
+        const tileIndex = world.ground[y][x];
+        // 52 is WATER in tiles.js (4*13 + 0)
+        if (tileIndex === 52) {
+          const block = this.solids.create(x * TILE + TILE/2, y * TILE + TILE/2, null).setVisible(false);
+          block.body.setSize(TILE, TILE);
+          block.body.updateFromGameObject();
+        }
+      }
+    }
+
     const props = buildProps(world, MAP_W, MAP_H);
     for (const p of props) {
       const frame = atlas.frames[p.name];
@@ -56,8 +71,19 @@ export default class KingdomScene extends Phaser.Scene {
       const spr = this.add.image(p.x, p.y, "props", p.name).setOrigin(0.5, 1);
       spr.setDepth(p.y);
       if (frame.solid) {
-        const bw = frame.w * 0.7;
-        const bh = Math.min(frame.h * 0.32, 46);
+        // Adjust collision box to better fit the object's base
+        let bw = frame.w * 0.8;
+        let bh = frame.h * 0.4;
+        
+        if (p.name.startsWith('house') || p.name === 'tower') {
+            bh = frame.h * 0.55; // Taller collision for buildings
+        }
+        
+        if (p.name === 'campfire') {
+            bw = 60;
+            bh = 40;
+        }
+
         const body = this.solids.create(p.x, p.y - bh / 2, null)
           .setVisible(false);
         body.body.setSize(bw, bh);
@@ -71,7 +97,7 @@ export default class KingdomScene extends Phaser.Scene {
     this.player = this.physics.add.sprite(start.x, start.y, "knight", 1)
       .setOrigin(0.5, 1)
       .setScale(KNIGHT_SCALE);
-    this.player.body.setSize(46, 26).setOffset(27, 128);
+    this.player.body.setSize(36, 20).setOffset(32, 136);
     this.player.setCollideWorldBounds(true);
     this.physics.add.collider(this.player, this.solids);
 
