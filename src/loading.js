@@ -2,11 +2,11 @@
 // while real assets preload, then the start button appears.
 
 const TIPS = [
-  "Yuklanmoqda...",
-  "Dunyo yaratilmoqda...",
-  "Qahramon jangga shaylanmoqda...",
-  "Minora qavatlari ochilmoqda...",
-  "Deyarli tayyor...",
+  "Loading...",
+  "Forging the realm...",
+  "Arming the knight...",
+  "Raising the tower...",
+  "Almost ready...",
 ];
 
 // Real assets to preload. Each finished asset bumps the progress target.
@@ -74,7 +74,7 @@ export function runLoadingScreen({ onComplete } = {}) {
 
   function finish() {
     render(100);
-    tipEl.textContent = "Tayyor!";
+    tipEl.textContent = "Ready!";
     knight.style.animationPlayState = "paused";
     startBtn.hidden = false;
     startBtn.addEventListener(

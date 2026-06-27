@@ -31,6 +31,17 @@ html, body {
   align-items: center;
 }
 
+/* ---------- Game canvas ---------- */
+#game {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100dvh;
+  background: #1d2b1a;
+  z-index: 5;
+}
+#game canvas { display: block; }
+
 /* ---------- Full-screen background ---------- */
 .bg {
   position: absolute;
