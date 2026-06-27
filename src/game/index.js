@@ -22,5 +22,6 @@ export function startGame() {
     },
     scene: [KingdomScene],
   });
+  window.game = game;
   return game;
 }

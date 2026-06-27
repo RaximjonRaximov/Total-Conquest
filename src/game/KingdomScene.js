@@ -49,15 +49,49 @@ export default class KingdomScene extends Phaser.Scene {
 
     // props (with collision bodies for solid ones)
     this.solids = this.physics.add.staticGroup();
+    // Water collision: Add invisible solid blocks for water tiles
+    for (let y = 0; y < MAP_H; y++) {
+      for (let x = 0; x < MAP_W; x++) {
+        const tileIndex = world.ground[y][x];
+        // 52 is WATER in tiles.js (4*13 + 0)
+        if (tileIndex === 52) {
+          const block = this.solids.create(x * TILE + TILE/2, y * TILE + TILE/2, null).setVisible(false);
+          block.body.setSize(TILE, TILE);
+          block.body.updateFromGameObject();
+        }
+      }
+    }
+
+    this.interactiveProps = this.physics.add.group();
     const props = buildProps(world, MAP_W, MAP_H);
     for (const p of props) {
       const frame = atlas.frames[p.name];
       if (!frame) continue;
       const spr = this.add.image(p.x, p.y, "props", p.name).setOrigin(0.5, 1);
       spr.setDepth(p.y);
+
+      // interaction triggers
+      if (['tower', 'notice_board', 'house_blue', 'well', 'campfire'].includes(p.name)) {
+          const trigger = this.add.zone(p.x, p.y, frame.w + 40, frame.h + 20);
+          this.physics.add.existing(trigger, true);
+          trigger.setData('name', p.name);
+          this.interactiveProps.add(trigger);
+      }
+
       if (frame.solid) {
-        const bw = frame.w * 0.7;
-        const bh = Math.min(frame.h * 0.32, 46);
+        // Adjust collision box to better fit the object's base
+        let bw = frame.w * 0.8;
+        let bh = frame.h * 0.4;
+        
+        if (p.name.startsWith('house') || p.name === 'tower') {
+            bh = frame.h * 0.55; // Taller collision for buildings
+        }
+        
+        if (p.name === 'campfire') {
+            bw = 60;
+            bh = 40;
+        }
+
         const body = this.solids.create(p.x, p.y - bh / 2, null)
           .setVisible(false);
         body.body.setSize(bw, bh);
@@ -71,9 +105,24 @@ export default class KingdomScene extends Phaser.Scene {
     this.player = this.physics.add.sprite(start.x, start.y, "knight", 1)
       .setOrigin(0.5, 1)
       .setScale(KNIGHT_SCALE);
-    this.player.body.setSize(46, 26).setOffset(27, 128);
+    this.player.body.setSize(36, 20).setOffset(32, 136);
     this.player.setCollideWorldBounds(true);
     this.physics.add.collider(this.player, this.solids);
+
+    // UI: Interaction prompt (desktop: E key, mobile: tap the prompt)
+    this.interactKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
+    this.prompt = this.add.container(0, 0).setDepth(20000).setVisible(false);
+    const bg = this.add.rectangle(0, 0, 140, 36, 0x000000, 0.75).setOrigin(0.5);
+    bg.setStrokeStyle(2, 0xf4c94b);
+    const txt = this.add.text(0, 0, "[E] INTERACT", { fontSize: '15px', color: '#fff', fontStyle: 'bold' }).setOrigin(0.5);
+    this.prompt.add([bg, txt]);
+    bg.setInteractive({ useHandCursor: true });
+    bg.on('pointerdown', () => {
+        if (this.activeInteractable) {
+            this.handleInteract(this.activeInteractable.getData('name'));
+        }
+    });
+    this.activeInteractable = null;
 
     this.cameras.main.startFollow(this.player, true, 0.12, 0.12);
     this.cameras.main.setZoom(1.1);
@@ -125,5 +174,46 @@ export default class KingdomScene extends Phaser.Scene {
       const idle = { down: 1, up: 4, left: 7, right: 7 }[this.facing];
       this.player.setFrame(idle);
     }
+
+    // interaction check
+    this.activeInteractable = null;
+    this.physics.overlap(this.player, this.interactiveProps, (player, trigger) => {
+        this.activeInteractable = trigger;
+    });
+
+    if (this.activeInteractable) {
+        this.prompt.setPosition(this.player.x, this.player.y - 100);
+        this.prompt.setVisible(true);
+        if (Phaser.Input.Keyboard.JustDown(this.interactKey)) {
+            this.handleInteract(this.activeInteractable.getData('name'));
+        }
+    } else {
+        this.prompt.setVisible(false);
+    }
+  }
+
+  handleInteract(name) {
+      console.log("Interacting with:", name);
+      // Basic placeholder feedback
+      const msgs = {
+          'tower': 'Entering the Infinite Tower... (Phase 2)',
+          'notice_board': 'No quests available yet.',
+          'campfire': 'You feel warmer.',
+          'well': 'The water is clear.',
+          'house_blue': 'The door is locked.'
+      };
+      const msg = msgs[name] || "Interacted.";
+      
+      const feedback = this.add.text(this.player.x, this.player.y - 60, msg, {
+          fontSize: '18px', color: '#f4c94b', stroke: '#000', strokeThickness: 4
+      }).setOrigin(0.5).setDepth(20001);
+      
+      this.tweens.add({
+          targets: feedback,
+          y: feedback.y - 40,
+          alpha: 0,
+          duration: 2000,
+          onComplete: () => feedback.destroy()
+      });
   }
 }
