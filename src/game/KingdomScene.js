@@ -8,6 +8,26 @@ const MAP_W = 40;
 const MAP_H = 40;
 const SPEED = 170;
 const KNIGHT_SCALE = 0.46;
+const INTERACTIVE_PROPS = new Set([
+  "tower",
+  "notice_board",
+  "house_blue",
+  "house_red",
+  "house_green",
+  "house_yellow",
+  "well",
+  "campfire",
+]);
+const INTERACTION_MESSAGES = {
+  tower: "Entering the Infinite Tower... (Phase 2)",
+  notice_board: "No quests available yet.",
+  campfire: "You feel warmer.",
+  well: "The water is clear.",
+  house_blue: "The door is locked.",
+  house_red: "The door is locked.",
+  house_green: "The door is locked.",
+  house_yellow: "The door is locked.",
+};
 
 export default class KingdomScene extends Phaser.Scene {
   constructor() {
@@ -62,7 +82,7 @@ export default class KingdomScene extends Phaser.Scene {
       }
     }
 
-    this.interactiveProps = this.physics.add.group();
+    this.interactiveProps = this.physics.add.staticGroup();
     const props = buildProps(world, MAP_W, MAP_H);
     for (const p of props) {
       const frame = atlas.frames[p.name];
@@ -70,12 +90,11 @@ export default class KingdomScene extends Phaser.Scene {
       const spr = this.add.image(p.x, p.y, "props", p.name).setOrigin(0.5, 1);
       spr.setDepth(p.y);
 
-      // interaction triggers
-      if (['tower', 'notice_board', 'house_blue', 'well', 'campfire'].includes(p.name)) {
-          const trigger = this.add.zone(p.x, p.y, frame.w + 40, frame.h + 20);
-          this.physics.add.existing(trigger, true);
-          trigger.setData('name', p.name);
-          this.interactiveProps.add(trigger);
+      if (INTERACTIVE_PROPS.has(p.name)) {
+        const trigger = this.add.zone(p.x, p.y, frame.w + 40, frame.h + 20);
+        this.physics.add.existing(trigger, true);
+        trigger.setData("name", p.name);
+        this.interactiveProps.add(trigger);
       }
 
       if (frame.solid) {
@@ -193,27 +212,21 @@ export default class KingdomScene extends Phaser.Scene {
   }
 
   handleInteract(name) {
-      console.log("Interacting with:", name);
-      // Basic placeholder feedback
-      const msgs = {
-          'tower': 'Entering the Infinite Tower... (Phase 2)',
-          'notice_board': 'No quests available yet.',
-          'campfire': 'You feel warmer.',
-          'well': 'The water is clear.',
-          'house_blue': 'The door is locked.'
-      };
-      const msg = msgs[name] || "Interacted.";
-      
-      const feedback = this.add.text(this.player.x, this.player.y - 60, msg, {
-          fontSize: '18px', color: '#f4c94b', stroke: '#000', strokeThickness: 4
-      }).setOrigin(0.5).setDepth(20001);
-      
-      this.tweens.add({
-          targets: feedback,
-          y: feedback.y - 40,
-          alpha: 0,
-          duration: 2000,
-          onComplete: () => feedback.destroy()
-      });
+    const msg = INTERACTION_MESSAGES[name] || "Interacted.";
+
+    const feedback = this.add.text(this.player.x, this.player.y - 60, msg, {
+      fontSize: "18px",
+      color: "#f4c94b",
+      stroke: "#000",
+      strokeThickness: 4,
+    }).setOrigin(0.5).setDepth(20001);
+
+    this.tweens.add({
+      targets: feedback,
+      y: feedback.y - 40,
+      alpha: 0,
+      duration: 2000,
+      onComplete: () => feedback.destroy(),
+    });
   }
 }
