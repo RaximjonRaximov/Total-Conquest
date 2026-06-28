@@ -21,6 +21,7 @@ export class Joystick {
 
   onDown(p) {
     if (this.pointerId !== null) return;
+    if (this.scene.isInteractPromptPointer?.(p)) return;
     if (p.x > this.scene.scale.width * 0.6) return; // right side reserved
     this.pointerId = p.id;
     this.base.set(p.x, p.y);
