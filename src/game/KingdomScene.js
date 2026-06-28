@@ -28,6 +28,11 @@ const INTERACTION_MESSAGES = {
   house_green: "The door is locked.",
   house_yellow: "The door is locked.",
 };
+const getInteractionTrigger = (frame) => {
+  const width = Phaser.Math.Clamp(frame.w * 0.75 + 44, 96, 190);
+  const height = Phaser.Math.Clamp(frame.h * 0.35 + 36, 72, 112);
+  return { width, height, y: -height * 0.35 };
+};
 
 export default class KingdomScene extends Phaser.Scene {
   constructor() {
@@ -91,7 +96,8 @@ export default class KingdomScene extends Phaser.Scene {
       spr.setDepth(p.y);
 
       if (INTERACTIVE_PROPS.has(p.name)) {
-        const trigger = this.add.zone(p.x, p.y, frame.w + 40, frame.h + 20);
+        const triggerBox = getInteractionTrigger(frame);
+        const trigger = this.add.zone(p.x, p.y + triggerBox.y, triggerBox.width, triggerBox.height);
         this.physics.add.existing(trigger, true);
         trigger.setData("name", p.name);
         this.interactiveProps.add(trigger);
@@ -209,6 +215,12 @@ export default class KingdomScene extends Phaser.Scene {
     } else {
         this.prompt.setVisible(false);
     }
+  }
+
+  isInteractPromptPointer(pointer) {
+    if (!this.prompt?.visible) return false;
+    const point = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
+    return Math.abs(point.x - this.prompt.x) <= 80 && Math.abs(point.y - this.prompt.y) <= 28;
   }
 
   handleInteract(name) {
