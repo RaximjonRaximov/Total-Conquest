@@ -161,7 +161,7 @@ export function handlePlayerEnemyOverlap(scene, player, enemy, time) {
 }
 
 export function damageEnemy(scene, enemy, amount) {
-  if (!enemy.active) return;
+  if (!enemy.active || enemy.getData("state") === "dead") return;
   let hp = enemy.getData("hp") - amount;
   enemy.setData("hp", hp);
 
@@ -173,6 +173,7 @@ export function damageEnemy(scene, enemy, amount) {
   if (hp <= 0) {
     enemy.setData("state", "dead");
     enemy.body.setVelocity(0, 0);
+    enemy.body.enable = false;
     scene.tweens.add({
       targets: enemy,
       alpha: 0,

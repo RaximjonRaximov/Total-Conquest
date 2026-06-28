@@ -129,7 +129,7 @@ export default class KingdomScene extends Phaser.Scene {
         } else if (p.name.startsWith("rock") || p.name === "rocks") {
           bw = frame.w * 0.8;
           bh = frame.h * 0.65;
-        } else if (p.name === "stump") {
+        } else if (p.name.startsWith("stump")) {
           bw = frame.w * 0.8;
           bh = frame.h * 0.65;
         } else if (p.name.startsWith("bush")) {
