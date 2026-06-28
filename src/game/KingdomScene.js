@@ -2,6 +2,13 @@ import Phaser from "phaser";
 import { TILE, buildKingdom } from "./tiles.js";
 import { buildProps } from "./layout.js";
 import { Joystick } from "./joystick.js";
+import { Minimap } from "./minimap.js";
+import {
+  spawnEnemies,
+  updateEnemies,
+  handlePlayerEnemyOverlap,
+  damageEnemy,
+} from "./enemies.js";
 import atlas from "../world/atlas.json";
 
 const MAP_W = 40;
@@ -104,17 +111,39 @@ export default class KingdomScene extends Phaser.Scene {
       }
 
       if (frame.solid) {
-        // Adjust collision box to better fit the object's base
-        let bw = frame.w * 0.8;
-        let bh = frame.h * 0.4;
-        
-        if (p.name.startsWith('house') || p.name === 'tower') {
-            bh = frame.h * 0.55; // Taller collision for buildings
-        }
-        
-        if (p.name === 'campfire') {
-            bw = 60;
-            bh = 40;
+        let bw = frame.w * 0.85;
+        let bh = frame.h * 0.45;
+
+        if (p.name.startsWith("house")) {
+          bw = frame.w * 0.96;
+          bh = frame.h * 0.88;
+        } else if (p.name === "tower") {
+          bw = frame.w * 0.9;
+          bh = frame.h * 0.6;
+        } else if (p.name === "campfire") {
+          bw = 60;
+          bh = 40;
+        } else if (p.name.startsWith("tree")) {
+          bw = Math.min(frame.w * 0.4, 36);
+          bh = Math.min(frame.h * 0.25, 32);
+        } else if (p.name.startsWith("rock") || p.name === "rocks") {
+          bw = frame.w * 0.8;
+          bh = frame.h * 0.65;
+        } else if (p.name === "stump") {
+          bw = frame.w * 0.8;
+          bh = frame.h * 0.65;
+        } else if (p.name.startsWith("bush")) {
+          bw = frame.w * 0.85;
+          bh = frame.h * 0.6;
+        } else if (p.name === "log" || p.name === "logs") {
+          bw = frame.w * 0.9;
+          bh = frame.h * 0.7;
+        } else if (p.name.startsWith("stall")) {
+          bw = frame.w * 0.9;
+          bh = frame.h * 0.55;
+        } else if (p.name.startsWith("tent")) {
+          bw = frame.w * 0.8;
+          bh = frame.h * 0.5;
         }
 
         const body = this.solids.create(p.x, p.y - bh / 2, null)
@@ -156,6 +185,39 @@ export default class KingdomScene extends Phaser.Scene {
     this.keys = this.input.keyboard.addKeys("W,A,S,D");
     this.joystick = new Joystick(this);
     this.facing = "down";
+
+    // minimap
+    this.minimap = new Minimap(this, MAP_W, MAP_H, world.ground);
+
+    // enemies
+    this.enemies = spawnEnemies(this, world.ground, MAP_W, MAP_H, this.solids);
+    this.physics.add.collider(this.player, this.enemies, (player, enemy) => {
+      handlePlayerEnemyOverlap(this, player, enemy, this.time.now);
+    });
+
+    // attack key
+    this.attackKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+    this.lastAttackTime = 0;
+
+    // attack button (mobile)
+    this.attackBtn = this.add.container(0, 0).setScrollFactor(0).setDepth(20000);
+    const atkCircle = this.add.circle(0, 0, 32, 0xcc3333, 0.7);
+    atkCircle.setStrokeStyle(3, 0xff5555);
+    const atkIcon = this.add.text(0, 0, "ATK", {
+      fontSize: "16px",
+      color: "#fff",
+      fontStyle: "bold",
+    }).setOrigin(0.5);
+    this.attackBtn.add([atkCircle, atkIcon]);
+    atkCircle.setInteractive({ useHandCursor: true });
+    atkCircle.on("pointerdown", () => this.performAttack());
+    this.repositionAttackBtn();
+    this.scale.on("resize", () => this.repositionAttackBtn());
+  }
+
+  repositionAttackBtn() {
+    const cam = this.cameras.main;
+    this.attackBtn.setPosition(cam.width - 60, cam.height - 60);
   }
 
   createAnims() {
@@ -214,6 +276,47 @@ export default class KingdomScene extends Phaser.Scene {
         }
     } else {
         this.prompt.setVisible(false);
+    }
+
+    // attack
+    if (Phaser.Input.Keyboard.JustDown(this.attackKey)) {
+      this.performAttack();
+    }
+
+    // enemies AI
+    updateEnemies(this, this.enemies, this.player, this.time.now);
+
+    // minimap
+    this.minimap.update(this.player, this.enemies);
+  }
+
+  performAttack() {
+    const now = this.time.now;
+    if (now - this.lastAttackTime < 400) return;
+    this.lastAttackTime = now;
+
+    const range = 60;
+    const dir = { down: [0, 1], up: [0, -1], left: [-1, 0], right: [1, 0] }[this.facing];
+    const ax = this.player.x + dir[0] * range * 0.5;
+    const ay = this.player.y - 40 + dir[1] * range * 0.5;
+
+    // slash visual
+    const slash = this.add.circle(ax, ay, 28, 0xf4c94b, 0.6).setDepth(20001);
+    this.tweens.add({
+      targets: slash,
+      scaleX: 1.8,
+      scaleY: 1.8,
+      alpha: 0,
+      duration: 200,
+      onComplete: () => slash.destroy(),
+    });
+
+    for (const enemy of this.enemies.getChildren()) {
+      if (!enemy.active) continue;
+      const dist = Phaser.Math.Distance.Between(ax, ay, enemy.x, enemy.y);
+      if (dist < range) {
+        damageEnemy(this, enemy, 10);
+      }
     }
   }
 
