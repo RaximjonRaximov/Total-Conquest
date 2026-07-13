@@ -238,10 +238,14 @@ export default class KingdomScene extends Phaser.Scene {
     dir.add(this.joystick.vector);
     if (dir.length() > 1) dir.normalize();
 
-    this.player.setVelocity(dir.x * SPEED, dir.y * SPEED);
+    const knockbackUntil = this.player.getData("knockbackUntil") || 0;
+    const knockedBack = this.time.now < knockbackUntil;
+    if (!knockedBack) {
+      this.player.setVelocity(dir.x * SPEED, dir.y * SPEED);
+    }
     this.player.setDepth(this.player.y);
 
-    const moving = dir.length() > 0.1;
+    const moving = !knockedBack && dir.length() > 0.1;
     if (moving) {
       if (Math.abs(dir.x) > Math.abs(dir.y)) {
         this.player.setFlipX(dir.x < 0);

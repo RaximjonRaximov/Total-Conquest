@@ -12,6 +12,7 @@ const WANDER_INTERVAL = 2000;
 const AGGRO_RANGE = 150;
 const DEAGGRO_RANGE = 250;
 const KNOCKBACK_FORCE = 200;
+const KNOCKBACK_DURATION = 200;
 const HIT_COOLDOWN = 800;
 
 function rng(seed) {
@@ -136,6 +137,7 @@ export function handlePlayerEnemyOverlap(scene, player, enemy, time) {
     Math.cos(angle) * KNOCKBACK_FORCE,
     Math.sin(angle) * KNOCKBACK_FORCE
   );
+  player.setData("knockbackUntil", time + KNOCKBACK_DURATION);
 
   // flash player red
   scene.cameras.main.shake(80, 0.005);
@@ -203,15 +205,18 @@ export function damageEnemy(scene, enemy, amount) {
       onComplete: () => lootText.destroy(),
     });
   } else {
-    // flash white
+    // flash white — enemy visuals are Shape objects, so tint the fill color
     const children = enemy.getAll();
+    const origColors = children.map((c) => c.fillColor);
     for (const c of children) {
-      if (c.setTint) c.setTint(0xffffff);
+      if (c.setFillStyle) c.setFillStyle(0xffffff);
     }
     scene.time.delayedCall(100, () => {
-      for (const c of children) {
-        if (c.clearTint) c.clearTint();
-      }
+      children.forEach((c, i) => {
+        if (c.setFillStyle && origColors[i] !== undefined) {
+          c.setFillStyle(origColors[i]);
+        }
+      });
     });
   }
 }
