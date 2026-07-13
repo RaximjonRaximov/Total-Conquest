@@ -216,7 +216,7 @@
       "y": 528,
       "w": 88,
       "h": 64,
-      "solid": false
+      "solid": true
     },
     "fence_h": {
       "x": 805,
@@ -251,7 +251,7 @@
       "y": 626,
       "w": 69,
       "h": 57,
-      "solid": false
+      "solid": true
     },
     "wall": {
       "x": 165,
@@ -265,7 +265,7 @@
       "y": 626,
       "w": 62,
       "h": 55,
-      "solid": false
+      "solid": true
     },
     "lamp": {
       "x": 292,
@@ -279,7 +279,7 @@
       "y": 626,
       "w": 65,
       "h": 54,
-      "solid": false
+      "solid": true
     },
     "sack": {
       "x": 399,
@@ -293,35 +293,35 @@
       "y": 626,
       "w": 54,
       "h": 51,
-      "solid": false
+      "solid": true
     },
     "log": {
       "x": 499,
       "y": 626,
       "w": 104,
       "h": 51,
-      "solid": false
+      "solid": true
     },
     "bush": {
       "x": 605,
       "y": 626,
       "w": 56,
       "h": 48,
-      "solid": false
+      "solid": true
     },
     "rock": {
       "x": 663,
       "y": 626,
       "w": 64,
       "h": 48,
-      "solid": false
+      "solid": true
     },
     "rocks": {
       "x": 729,
       "y": 626,
       "w": 74,
       "h": 48,
-      "solid": false
+      "solid": true
     },
     "grass_tuft": {
       "x": 805,
@@ -335,14 +335,14 @@
       "y": 626,
       "w": 56,
       "h": 44,
-      "solid": false
+      "solid": true
     },
     "stump": {
       "x": 903,
       "y": 626,
       "w": 48,
       "h": 44,
-      "solid": false
+      "solid": true
     },
     "bucket": {
       "x": 953,
