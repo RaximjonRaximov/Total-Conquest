@@ -82,6 +82,7 @@ docker run -d --env-file .env --name ai-agent ai-content-agent
 | `/channels` | Kanallar ro'yxati |
 | `/history` | Postlar tarixi |
 | `/stats` | Statistika |
+| `/review` | Video ko'rib, English review yozish (pul ishlash uchun) |
 
 ## Ishlash jarayoni
 
@@ -142,14 +143,68 @@ ai-content-agent/
 │   ├── commands.py          # Bot buyruqlari
 │   ├── approval.py          # Tasdiqlash/rad etish
 │   ├── content_input.py     # Manual kontent
+│   ├── review.py            # Video review yaratish
 │   └── system_settings.py   # System prompt va jadval
 ├── services/
 │   ├── ai_editor.py         # AI tarjima/tahrirlash
 │   ├── content_finder.py    # Kontent qidirish
 │   ├── publisher.py         # Nashr boshqaruvchi
-│   └── scheduler.py         # Jadval boshqaruvchi
+│   ├── scheduler.py         # Jadval boshqaruvchi
+│   └── video_review.py      # Video review generator
 └── platforms/
     ├── telegram_publisher.py  # Telegram nashr
     ├── instagram_publisher.py # Instagram nashr
     └── youtube_publisher.py   # YouTube nashr
 ```
+
+## 💰 Bot orqali pul ishlash yo'llari
+
+### 1. `/review` — video ko'rib, English review yozish
+
+Eng sodda va tez daromad yo'li. Platformalar sizga video ko'rish va fikr yozish uchun to'laydi:
+
+- **Streaka Hub** — $0.50–$5+ bir review
+- **PlaybookUX** — $10 (10 daqiqa), $90 (90 daqiqa)
+- **UserTesting, Userlytics** — $10–$100 sessiya
+- **CrowdGen / Appen** — ijtimoiy tarmoq video rater loyihalari, 2 haftada $500+ gacha
+
+#### Telegram bot orqali:
+1. Platformada ro'yxatdan o'ting va video review topshiriq oling.
+2. Telegramda `/review` yozing.
+3. Platforma nomini tanlang (`streaka`, `playbookux`, `usertesting`, `appen` yoki `medium`/`youtube`).
+4. Ko'rgan video haqida o'zbekcha qisqacha yozing.
+5. Platform berilgan savollarni yuboring.
+6. Bot professional inglizcha review tayyorlaydi — nusxa olib, platformaga joylang.
+
+#### Terminal'dan ishlatish:
+Agar Telegram bot hali sozlanmagan bo'lsa, to'g'ridan-to'g'ri terminaldan foydalanishingiz mumkin:
+
+```bash
+python video_review_cli.py
+```
+
+Sizdan platforma, video tavsifi va savollar so'raladi. Review inglizchada tayyor bo'ladi.
+
+### 2. AI kontent agenti — Telegram/YouTube kanali
+
+Kanal yaratib, AI yangiliklarini avtomatik nashr qilasiz. Keyin reklama, affiliate, sponsorship orqali pul ishlash mumkin. Bu uzoq muddatli strategiya.
+
+### 3. Frilans xizmatlar
+
+Bot bilan tayyorlangan postlarni va review namunalarini portfolio qilib, Upwork/Fiverr da SMM, AI content writing, video script xizmatlarini sotishingiz mumkin.
+
+### 4. Tez boshlash rejasi (1 hafta)
+
+1. Kun 1: Payoneer hisobi oching.
+2. Kun 2: Streaka Hub, PlaybookUX, Mindrift ro'yxatdan o'ting.
+3. Kun 3: `/review` bilan 5 ta test review yozing.
+4. Kun 4-7: Kuniga 1–2 soat vazifa bajaring, bot bilan tezlashtiring.
+
+Realistik maqsad: birinchi 2-4 haftada $50–$200, 3 oydan keyin $300–$1000+.
+
+## ⚠️ Ogohlantirishlar
+
+- Hech qanday "oldin to'lov" talab qiluvchi kursga kirmang.
+- Fake obuna/like sotib olish yoki bot kommentariyalar — akauntingizni bloklab qo'yadi.
+- "Telefonda video ko'rib boy bo'ling" va'dalari ko'pincha skam. Haqiqiy platformalarda to'lov past, lekin aniq.
+- AI review faqat yozish jarayonini tezlashtiradi — video haqiqatdan ko'rish shart.
