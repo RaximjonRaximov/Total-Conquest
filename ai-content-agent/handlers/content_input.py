@@ -3,6 +3,7 @@ import os
 import uuid
 
 from aiogram import Router, F
+from aiogram.filters import StateFilter
 from aiogram.types import Message
 
 from config import Config
@@ -14,7 +15,7 @@ logger = logging.getLogger(__name__)
 router = Router()
 
 
-@router.message(F.photo)
+@router.message(F.photo, StateFilter(None))
 async def on_photo(message: Message):
     """Foydalanuvchi rasm yuborsa."""
     if message.from_user.id != Config.ADMIN_USER_ID:
@@ -65,7 +66,7 @@ async def on_photo(message: Message):
     )
 
 
-@router.message(F.video)
+@router.message(F.video, StateFilter(None))
 async def on_video(message: Message):
     """Foydalanuvchi video yuborsa."""
     if message.from_user.id != Config.ADMIN_USER_ID:
@@ -116,7 +117,7 @@ async def on_video(message: Message):
     )
 
 
-@router.message(F.document)
+@router.message(F.document, StateFilter(None))
 async def on_document(message: Message):
     """Foydalanuvchi fayl yuborsa."""
     if message.from_user.id != Config.ADMIN_USER_ID:
@@ -207,7 +208,7 @@ async def on_document(message: Message):
         )
 
 
-@router.message(F.text & ~F.text.startswith("/"))
+@router.message(F.text & ~F.text.startswith("/"), StateFilter(None))
 async def on_text(message: Message):
     """Foydalanuvchi matn yuborsa."""
     if message.from_user.id != Config.ADMIN_USER_ID:

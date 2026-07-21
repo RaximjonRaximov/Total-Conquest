@@ -1,3 +1,4 @@
+import html
 import logging
 
 from aiogram import Router, F
@@ -132,12 +133,12 @@ async def process_questions(message: Message, state: FSMContext):
         title = result.get("title", "")
         word_count = result.get("word_count", 0)
 
-        # Escape < and > for safe HTML preview
-        safe_review = review_text.replace("<", "&lt;").replace(">", "&gt;")
+        safe_review = html.escape(review_text)
+        safe_title = html.escape(title)
 
         await message.answer(
             f"✅ <b>{SUPPORTED_PLATFORMS[platform].split('—')[0].strip()} uchun review tayyor!</b>\n\n"
-            f"<b>Sarlavha:</b> {title}\n"
+            f"<b>Sarlavha:</b> {safe_title}\n"
             f"<b>So'zlar soni:</b> {word_count}\n\n"
             f"<blockquote expandable>{safe_review}</blockquote>\n\n"
             "📋 Yuqoridagi matnni nusxa olib, platformaga joylang.\n\n"
