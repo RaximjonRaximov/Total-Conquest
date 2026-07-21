@@ -1,5 +1,6 @@
 import html
 import logging
+import re
 
 from aiogram import Router, F
 from aiogram.filters import Command
@@ -105,6 +106,31 @@ async def process_description(message: Message, state: FSMContext):
     await state.set_state(ReviewStates.waiting_questions)
 
 
+def _chunk_text(text: str, max_len: int = 4000) -> list[str]:
+    """Matnni Telegram xabar chegarasidan oshmaydigan qismlarga bo'lish."""
+    if len(text) <= max_len:
+        return [text]
+
+    chunks = []
+    current = ""
+    for token in re.findall(r"\S+|\s+", text):
+        if len(token) > max_len:
+            if current:
+                chunks.append(current)
+                current = ""
+            for i in range(0, len(token), max_len):
+                chunks.append(token[i : i + max_len])
+            continue
+        if current and len(current) + len(token) > max_len:
+            chunks.append(current)
+            current = token
+        else:
+            current += token
+    if current:
+        chunks.append(current)
+    return chunks
+
+
 @router.message(ReviewStates.waiting_questions, F.text)
 async def process_questions(message: Message, state: FSMContext):
     """Savollarni qabul qilib review yaratish."""
@@ -133,17 +159,22 @@ async def process_questions(message: Message, state: FSMContext):
         title = result.get("title", "")
         word_count = result.get("word_count", 0)
 
-        safe_review = html.escape(review_text)
         safe_title = html.escape(title)
 
         await message.answer(
             f"✅ <b>{SUPPORTED_PLATFORMS[platform].split('—')[0].strip()} uchun review tayyor!</b>\n\n"
             f"<b>Sarlavha:</b> {safe_title}\n"
-            f"<b>So'zlar soni:</b> {word_count}\n\n"
-            f"<blockquote expandable>{safe_review}</blockquote>\n\n"
+            f"<b>So'zlar soni:</b> {word_count}",
+            parse_mode="HTML",
+        )
+
+        for chunk in _chunk_text(review_text):
+            await message.answer(chunk, parse_mode=None)
+
+        await message.answer(
             "📋 Yuqoridagi matnni nusxa olib, platformaga joylang.\n\n"
             "Yana review yozish uchun /review",
-            parse_mode="HTML",
+            parse_mode=None,
         )
 
     except Exception as e:
