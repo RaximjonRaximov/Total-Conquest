@@ -7,10 +7,13 @@ import uuid
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
+from aiogram.fsm.storage.memory import MemoryStorage
+
+os.makedirs("data", exist_ok=True)
 
 from config import CONTENT_TYPE_NEWS, Config
 from database.models import ContentPost, async_session, init_db
-from handlers import approval, commands, content_input, system_settings
+from handlers import approval, commands, content_input, review, system_settings
 from services.ai_editor import AIEditor
 from services.content_finder import ContentFinder
 from services.publisher import Publisher
@@ -28,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 # Global instances
 bot: Bot | None = None
-dp = Dispatcher()
+dp = Dispatcher(storage=MemoryStorage())
 content_finder = ContentFinder()
 ai_editor = AIEditor()
 scheduler = ContentScheduler()
@@ -174,6 +177,7 @@ async def main():
     dp.include_router(system_settings.router)
     dp.include_router(approval.router)
     dp.include_router(content_input.router)
+    dp.include_router(review.router)
 
     scheduler.set_search_callback(trigger_search)
     scheduler.start()
